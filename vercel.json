@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "templates/**",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "templates"
+      }
+    },
+    {
+      "src": "data/**",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "data"
+      }
+    },
+    {
+      "src": "models/**",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "models"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "app.py"
+    }
+  ]
+}
