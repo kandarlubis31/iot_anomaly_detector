@@ -22,9 +22,31 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 # Pastikan folder models ada, ini penting untuk Vercel agar bisa menyimpan model
 os.makedirs(MODELS_DIR, exist_ok=True)
 
+# Pindahkan definisi generate_sample_data ke sini agar bisa diakses lebih awal
+def generate_sample_data(n_points=1000):
+    """Generate sample data jika tidak ada data real"""
+    np.random.seed(42)
+    start_time = datetime.now() - timedelta(hours=n_points//60)
+    timestamps = [start_time + timedelta(minutes=i) for i in range(n_points)]
+    temperatures = np.random.normal(25, 3, n_points)
+    humidity = np.random.normal(60, 10, n_points)
+    pressure = np.random.normal(1013, 20, n_points)
+    power_consumption = np.random.normal(100, 15, n_points)
+    anomaly_indices = np.random.choice(n_points, size=int(n_points * 0.05), replace=False)
+    for idx in anomaly_indices:
+        temperatures[idx] += np.random.choice([-1, 1]) * np.random.uniform(10, 20)
+        power_consumption[idx] += np.random.choice([-1, 1]) * np.random.uniform(50, 100)
+    df = pd.DataFrame({
+        'timestamp': timestamps,
+        'temperature': temperatures,
+        'humidity': humidity,
+        'pressure': pressure,
+        'power_consumption': power_consumption
+    })
+    return df
+
 class AnomalyDetector:
     def __init__(self, model_path="models/isolation_forest_model.joblib"):
-        # Pastikan model_path menggunakan BASE_DIR yang benar
         self.model_path = os.path.join(BASE_DIR, model_path)
         self.model = None
         self.feature_cols = ['temperature', 'humidity', 'pressure', 'power_consumption']
@@ -114,8 +136,8 @@ class AnomalyDetector:
             return None
 
 # Inisialisasi Flask app
-app = Flask(__name__, template_folder='templates') # Tentukan folder templates secara eksplisit
-CORS(app)  # Enable CORS
+app = Flask(__name__, template_folder='templates')
+CORS(app)
 
 # Inisialisasi detector
 detector = AnomalyDetector()
@@ -136,35 +158,12 @@ else:
         else:
             logger.warning(f"Data pelatihan awal '{INITIAL_TRAINING_DATA_PATH}' tidak ditemukan.")
             logger.info("Membuat data sampel untuk pelatihan awal model.")
-            sample_df_for_training = generate_sample_data(1000) # Pastikan ini didefinisikan atau diimpor
+            sample_df_for_training = generate_sample_data(1000) # Panggil fungsi yang kini sudah didefinisikan
             detector.train_model(sample_df_for_training)
 
     except Exception as e:
         logger.error(f"Gagal melatih model awal: {e}")
-        # Jangan keluar dari aplikasi, biarkan tetap berjalan tapi tanpa model
-        pass # Biarkan aplikasi tetap berjalan meski model gagal dimuat/dilatih
-
-def generate_sample_data(n_points=1000):
-    """Generate sample data jika tidak ada data real"""
-    np.random.seed(42)
-    start_time = datetime.now() - timedelta(hours=n_points//60)
-    timestamps = [start_time + timedelta(minutes=i) for i in range(n_points)]
-    temperatures = np.random.normal(25, 3, n_points)
-    humidity = np.random.normal(60, 10, n_points)
-    pressure = np.random.normal(1013, 20, n_points)
-    power_consumption = np.random.normal(100, 15, n_points)
-    anomaly_indices = np.random.choice(n_points, size=int(n_points * 0.05), replace=False)
-    for idx in anomaly_indices:
-        temperatures[idx] += np.random.choice([-1, 1]) * np.random.uniform(10, 20)
-        power_consumption[idx] += np.random.choice([-1, 1]) * np.random.uniform(50, 100)
-    df = pd.DataFrame({
-        'timestamp': timestamps,
-        'temperature': temperatures,
-        'humidity': humidity,
-        'pressure': pressure,
-        'power_consumption': power_consumption
-    })
-    return df
+        pass
 
 def prepare_chart_data(df, max_chart_points=2000):
     total_points = len(df)
@@ -224,6 +223,7 @@ def upload_csv():
                     break
                 except (UnicodeDecodeError, pd.errors.EmptyDataError):
                     continue
+            
             if df is None:
                 return jsonify({'error': 'Could not read CSV file. Please check file encoding.'}), 400
             
@@ -252,17 +252,11 @@ def upload_csv():
                 df['timestamp'] = [start_time + timedelta(minutes=i) for i in range(len(df))]
         
         logger.info("Training model with uploaded data...")
-        # Di serverless, model dilatih ulang jika tidak ada atau 'cold start'.
-        # Jika Anda ingin model persisten, Anda perlu menyimpannya di Cloud Storage
-        # dan memuatnya dari sana, bukan melatih setiap kali.
-        # Untuk kasus sederhana ini, kita asumsikan model dilatih/dimuat sekali per instance fungsi.
-        # Karena kita sudah mencoba memuat/melatih di awal file, kita cukup pastikan di sini.
         
-        # Jika model belum dilatih atau dimuat karena kegagalan awal, coba latih lagi dengan data yang diupload
         if detector.model is None:
             logger.warning("Model tidak dimuat/dilatih saat startup, mencoba latih dengan data upload.")
-            detector.train_model(df) # Coba latih dengan data yang baru diupload
-            if detector.model is None: # Jika masih gagal
+            detector.train_model(df)
+            if detector.model is None:
                  return jsonify({'error': 'Failed to train or load model'}), 500
 
         logger.info("Predicting anomalies...")
@@ -307,7 +301,7 @@ def get_sample_data():
         n_points = int(request.args.get('points', 1000))
         df = generate_sample_data(n_points)
         
-        detector.train_model(df) # Latih model dengan sample data
+        detector.train_model(df)
         result_df = detector.predict_anomaly(df)
         
         if result_df is None:
@@ -332,6 +326,3 @@ def get_sample_data():
         logger.error(f"Error generating sample data: {e}")
         return jsonify({'error': f'Error generating sample data: {str(e)}'}), 500
 
-# Objek 'app' harus tersedia di root level untuk Vercel
-# Tidak ada lagi if __name__ == '__main__': di sini untuk Vercel
-# app.run(debug=True, host='0.0.0.0', port=5000)
