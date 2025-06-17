@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template # render_template tetap ada tapi tidak digunakan di route '/'
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
@@ -14,39 +14,18 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Tentukan base directory untuk Vercel. Di Vercel, direktori kerja adalah root proyek.
+# Tentukan base directory. Penting untuk deployment serverless.
+# Ini akan menjadi root dari fungsi serverless di Vercel (yaitu direktori 'backend').
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
-# Pastikan folder models ada, ini penting untuk Vercel agar bisa menyimpan model
+# Pastikan folder models ada.
 os.makedirs(MODELS_DIR, exist_ok=True)
-
-# Pindahkan definisi generate_sample_data ke sini agar bisa diakses lebih awal
-def generate_sample_data(n_points=1000):
-    """Generate sample data jika tidak ada data real"""
-    np.random.seed(42)
-    start_time = datetime.now() - timedelta(hours=n_points//60)
-    timestamps = [start_time + timedelta(minutes=i) for i in range(n_points)]
-    temperatures = np.random.normal(25, 3, n_points)
-    humidity = np.random.normal(60, 10, n_points)
-    pressure = np.random.normal(1013, 20, n_points)
-    power_consumption = np.random.normal(100, 15, n_points)
-    anomaly_indices = np.random.choice(n_points, size=int(n_points * 0.05), replace=False)
-    for idx in anomaly_indices:
-        temperatures[idx] += np.random.choice([-1, 1]) * np.random.uniform(10, 20)
-        power_consumption[idx] += np.random.choice([-1, 1]) * np.random.uniform(50, 100)
-    df = pd.DataFrame({
-        'timestamp': timestamps,
-        'temperature': temperatures,
-        'humidity': humidity,
-        'pressure': pressure,
-        'power_consumption': power_consumption
-    })
-    return df
 
 class AnomalyDetector:
     def __init__(self, model_path="models/isolation_forest_model.joblib"):
+        # Path model harus relatif terhadap BASE_DIR (yaitu folder 'backend')
         self.model_path = os.path.join(BASE_DIR, model_path)
         self.model = None
         self.feature_cols = ['temperature', 'humidity', 'pressure', 'power_consumption']
@@ -55,26 +34,19 @@ class AnomalyDetector:
     def train_model(self, df):
         try:
             logger.info(f"Training model dengan {len(df)} data points")
-            
             missing_cols = [col for col in self.feature_cols if col not in df.columns]
             if missing_cols:
                 raise ValueError(f"Kolom yang diperlukan tidak ditemukan: {missing_cols}")
-            
             X_train = df[self.feature_cols].copy()
-            
             for col in X_train.columns:
                 X_train[col] = pd.to_numeric(X_train[col], errors='coerce')
             X_train = X_train.dropna()
-            
             if X_train.empty:
                 raise ValueError("DataFrame kosong setelah preprocessing")
-            
             self.isolation_forest.fit(X_train)
             self.model = self.isolation_forest
-            
             joblib.dump(self.model, self.model_path)
             logger.info(f"Model berhasil dilatih dan disimpan di {self.model_path}")
-            
             return True
         except Exception as e:
             logger.error(f"Error training model: {e}")
@@ -104,31 +76,23 @@ class AnomalyDetector:
             missing_cols = [col for col in self.feature_cols if col not in df.columns]
             if missing_cols:
                 raise ValueError(f"Kolom yang diperlukan tidak ditemukan: {missing_cols}")
-            
             df_result = df.copy()
             X_predict = df[self.feature_cols].copy()
-            
             for col in X_predict.columns:
                 X_predict[col] = pd.to_numeric(X_predict[col], errors='coerce')
-            
             valid_indices = X_predict.dropna().index
             X_predict_clean = X_predict.dropna()
-            
             if X_predict_clean.empty:
                 logger.warning("Tidak ada data valid untuk prediksi")
                 df_result['is_anomaly'] = False
                 df_result['anomaly_score'] = 0.0
                 return df_result
-            
             predictions = self.model.predict(X_predict_clean)
             anomaly_scores = self.model.decision_function(X_predict_clean)
-            
             df_result['is_anomaly'] = False
             df_result['anomaly_score'] = 0.0
-            
             df_result.loc[valid_indices, 'is_anomaly'] = (predictions == -1)
             df_result.loc[valid_indices, 'anomaly_score'] = anomaly_scores
-            
             return df_result
             
         except Exception as e:
@@ -136,15 +100,15 @@ class AnomalyDetector:
             return None
 
 # Inisialisasi Flask app
-app = Flask(__name__, template_folder='templates')
-CORS(app)
+# Hapus template_folder karena Flask tidak lagi menyajikan HTML secara langsung
+app = Flask(__name__) 
+CORS(app)  # Enable CORS untuk komunikasi dengan frontend React
 
 # Inisialisasi detector
 detector = AnomalyDetector()
 
 # Logika untuk melatih atau memuat model saat aplikasi pertama kali diimpor
 # Ini akan dijalankan saat serverless function "dingin" (cold start)
-# Pastikan data/iot_data.csv diunggah ke Vercel
 INITIAL_TRAINING_DATA_PATH = os.path.join(DATA_DIR, "iot_data.csv")
 if os.path.exists(detector.model_path):
     logger.info("Mencoba memuat model yang sudah ada...")
@@ -158,12 +122,33 @@ else:
         else:
             logger.warning(f"Data pelatihan awal '{INITIAL_TRAINING_DATA_PATH}' tidak ditemukan.")
             logger.info("Membuat data sampel untuk pelatihan awal model.")
-            sample_df_for_training = generate_sample_data(1000) # Panggil fungsi yang kini sudah didefinisikan
+            sample_df_for_training = generate_sample_data(1000)
             detector.train_model(sample_df_for_training)
 
     except Exception as e:
         logger.error(f"Gagal melatih model awal: {e}")
         pass
+
+def generate_sample_data(n_points=1000):
+    np.random.seed(42)
+    start_time = datetime.now() - timedelta(hours=n_points//60)
+    timestamps = [start_time + timedelta(minutes=i) for i in range(n_points)]
+    temperatures = np.random.normal(25, 3, n_points)
+    humidity = np.random.normal(60, 10, n_points)
+    pressure = np.random.normal(1013, 20, n_points)
+    power_consumption = np.random.normal(100, 15, n_points)
+    anomaly_indices = np.random.choice(n_points, size=int(n_points * 0.05), replace=False)
+    for idx in anomaly_indices:
+        temperatures[idx] += np.random.choice([-1, 1]) * np.random.uniform(10, 20)
+        power_consumption[idx] += np.random.choice([-1, 1]) * np.random.uniform(50, 100)
+    df = pd.DataFrame({
+        'timestamp': timestamps,
+        'temperature': temperatures,
+        'humidity': humidity,
+        'pressure': pressure,
+        'power_consumption': power_consumption
+    })
+    return df
 
 def prepare_chart_data(df, max_chart_points=2000):
     total_points = len(df)
@@ -193,11 +178,12 @@ def prepare_chart_data(df, max_chart_points=2000):
         'anomaly_scores': sampled_df['anomaly_score'].round(4).tolist()
     }
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# Hapus route '/' karena React akan menyajikan HTML utama
+# @app.route('/')
+# def index():
+#     return render_template('index.html')
 
-@app.route('/upload_csv', methods=['POST'])
+@app.route('/api/upload_csv', methods=['POST']) # Ubah ke /api/upload_csv untuk API endpoint
 def upload_csv():
     try:
         if 'csv_file' not in request.files:
@@ -287,7 +273,7 @@ def upload_csv():
         logger.error(traceback.format_exc())
         return jsonify({'error': f'Internal server error: {str(e)}'}), 500
 
-@app.route('/health', methods=['GET'])
+@app.route('/api/health', methods=['GET']) # Ubah ke /api/health
 def health_check():
     return jsonify({
         'status': 'healthy',
@@ -295,7 +281,7 @@ def health_check():
         'timestamp': datetime.now().isoformat()
     })
 
-@app.route('/sample_data', methods=['GET'])
+@app.route('/api/sample_data', methods=['GET']) # Ubah ke /api/sample_data
 def get_sample_data():
     try:
         n_points = int(request.args.get('points', 1000))

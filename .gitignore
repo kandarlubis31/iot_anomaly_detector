@@ -1,8 +1,9 @@
-venv/
-__pycache__/
-*.pyc
-.DS_Store
-.vscode/
-*.joblib
-uploads/
+node_modules/
+frontend/dist/
+frontend/.vite/
+backend/venv_backend/
+backend/__pycache__/
+backend/*.joblib # Model akan dibuat di Vercel
+backend/uploads/
+.env
 .vercel/
