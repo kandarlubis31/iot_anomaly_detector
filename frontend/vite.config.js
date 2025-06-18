@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://iotanomalydetector-production.up.railway.app/:5000', 
+        target: 'https://iotanomalydetector-production.up.railway.app', 
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/api'), // Pastikan path tetap /api
       },
