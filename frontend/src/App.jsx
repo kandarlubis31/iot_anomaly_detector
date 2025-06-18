@@ -36,6 +36,9 @@ function App() {
   const distributionChartRef = useRef(null);
   const scoreChartRef = useRef(null);
 
+  // Define API_BASE_URL here
+  const API_BASE_URL = process.env.VITE_API_URL || "https://iotanomalydetector-production.up.railway.app/"; 
+
   useEffect(() => {
     setResultsVisible(false);
     setLoading(false);
@@ -585,8 +588,6 @@ function App() {
     });
   }, []);
 
-  // --- Efek untuk pemrosesan data dan rendering chart ---
-
   // Efek untuk memproses ulang data saat rawData atau dataRange berubah
   useEffect(() => {
     if (rawData) {
@@ -639,7 +640,7 @@ function App() {
     createAnomalyList,
   ]);
 
-  // --- Logika utama untuk upload data ---
+  // Logika utama untuk upload data
   const uploadCsv = async () => {
     hideMessage();
     if (!fileSelected) {
@@ -654,7 +655,7 @@ function App() {
     setResultsVisible(false);
 
     try {
-      const response = await fetch("/api/upload_csv", {
+      const response = await fetch(`${API_BASE_URL}/api/upload_csv`, {
         method: "POST",
         body: formData,
       });

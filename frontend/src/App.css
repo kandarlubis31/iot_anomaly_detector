@@ -74,73 +74,60 @@
 }
 
 html {
-  font-size: 16px; /* Base font size */
-  scroll-behavior: smooth; /* Smooth scroll for anchor links */
+  font-size: 16px; 
+  scroll-behavior: smooth;
 }
 
-/* Memastikan body mengambil seluruh tinggi viewport dan menjadi flex container untuk sentering */
 body {
   font-family: var(--font-primary);
   background: var(--primary-gradient);
   color: var(--gray-800);
   line-height: 1.6;
-  -webkit-font-smoothing: antialiased; /* Font rendering halus di WebKit */
-  -moz-osx-font-smoothing: grayscale; /* Font rendering halus di Firefox */
-  overflow-x: hidden; /* Mencegah scroll horizontal pada body */
-  min-height: 100vh; /* Pastikan body mengambil tinggi penuh viewport */
-  display: flex; /* Aktifkan Flexbox di body */
-  align-items: center; /* Sentering vertikal konten di dalam body */
-  justify-content: center; /* Sentering horizontal konten di dalam body */
-  padding: var(--space-lg); /* Padding di sekitar container utama */
-  /* Remove overflow-y from body if container handles its own scrolling */
-  /* overflow-y: auto; */ /* Biarkan ini jika ingin scroll bar level body, atau hapus jika container yang scroll */
+  -webkit-font-smoothing: antialiased; 
+  -moz-osx-font-smoothing: grayscale; 
+  overflow-x: hidden; 
+  min-height: 100vh; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  padding: var(--space-lg); 
 }
 
-/* Root div (#root) tempat aplikasi React di-mount */
 #root {
-  /* #root tidak perlu min-height: 100vh lagi karena body sudah mengaturnya */
-  /* Juga tidak perlu display: flex, align-items, justify-content lagi,
-     karena .container akan di-sentering langsung oleh body */
-  width: 100%; /* Pastikan #root mengambil lebar penuh */
-  height: 100%; /* Pastikan #root mengambil tinggi penuh */
-  display: flex; /* Tetap flex untuk memastikan container terisi penuh */
-  flex-direction: column; /* Mengatur konten secara kolom */
-  align-items: center; /* Sentering horizontal container di dalam #root */
-  justify-content: center; /* Sentering vertikal container di dalam #root, sebagai fallback jika ada konten lain */
-  /* padding: var(--space-lg); */ /* Padding dipindahkan ke body */
+  width: 100%; 
+  height: 100%; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
 }
 
 .container {
   width: 100%;
-  max-width: 1400px; /* Lebar maksimal container */
-  background: rgba(255, 255, 255, 0.98); /* Background semi-transparan */
-  backdrop-filter: blur(20px); /* Efek blur untuk glassmorphism */
-  border-radius: var(--radius-2xl); /* Border radius besar */
-  box-shadow: var(--shadow-xl); /* Shadow besar */
-  position: relative; /* Untuk positioning pseudo-elements atau children */
+  max-width: 1400px;
+  background: rgba(255, 255, 255, 0.98); 
+  backdrop-filter: blur(20px); 
+  border-radius: var(--radius-2xl); 
+  box-shadow: var(--shadow-xl); 
+  position: relative; 
   
-  /* Glassmorphism effect: Border putih semi-transparan */
   border: 1px solid rgba(255, 255, 255, 0.2);
 
-  /* Pengelolaan scrollbar internal pada container */
-  /* Tinggi maksimum disesuaikan agar tidak tumpah dari viewport + padding body */
-  max-height: calc(100vh - (var(--space-lg) * 2)); /* 100vh - (padding body atas + bawah) */
-  overflow-y: auto; /* Aktifkan scroll vertikal internal jika konten melebihi max-height */
-  -webkit-overflow-scrolling: touch; /* Scrolling yang halus di iOS */
-  overflow-x: hidden; /* Pastikan tidak ada scroll horizontal di dalam container */
+  max-height: calc(100vh - (var(--space-lg) * 2)); 
+  overflow-y: auto; 
+  -webkit-overflow-scrolling: touch; 
+  overflow-x: hidden; 
 }
 
-/* Header dengan gradien modern dan animasi float */
 .header {
   background: var(--primary-gradient);
   padding: var(--space-2xl);
   text-align: center;
   color: var(--white);
-  position: relative; /* Untuk pseudo-element */
-  overflow: hidden; /* Sembunyikan overflow dari pseudo-element */
-  border-top-left-radius: var(--radius-2xl); /* Sesuaikan radius dengan container */
+  position: relative; 
+  overflow: hidden; 
+  border-top-left-radius: var(--radius-2xl); 
   border-top-right-radius: var(--radius-2xl);
-  /* Tidak perlu position: sticky di sini jika tidak ada scrolling di luar container */
 }
 
 .header::before {
@@ -151,18 +138,18 @@ body {
   width: 200%;
   height: 200%;
   background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-  animation: float 6s ease-in-out infinite; /* Perbaiki animation-timing-function */
-  z-index: 0; /* Pastikan di belakang teks */
+  animation: float 6s ease-in-out infinite; 
+  z-index: 0; 
 }
 
 .header h1 {
-  font-size: clamp(2rem, 4vw, 3rem); /* Ukuran font responsif */
+  font-size: clamp(2rem, 4vw, 3rem); 
   font-weight: 700;
   margin-bottom: var(--space-md);
-  letter-spacing: -0.025em; /* Kerapatan huruf */
+  letter-spacing: -0.025em; 
   position: relative;
-  z-index: 1; /* Pastikan di atas pseudo-element */
-  text-shadow: var(--shadow-sm); /* Tambah shadow pada teks */
+  z-index: 1; 
+  text-shadow: var(--shadow-sm); 
 }
 
 .header p {
@@ -173,15 +160,13 @@ body {
   z-index: 1;
   max-width: 600px;
   margin: 0 auto;
-  text-shadow: var(--shadow-sm); /* Tambah shadow pada teks */
+  text-shadow: var(--shadow-sm); 
 }
 
-/* Main Content area */
 .main-content {
   padding: var(--space-2xl);
 }
 
-/* Upload Section yang lebih modern dan interaktif */
 .upload-section {
   background: var(--gray-50);
   border-radius: var(--radius-xl);
@@ -194,7 +179,7 @@ body {
   align-items: center;
   gap: var(--space-lg);
   position: relative;
-  overflow: hidden; /* Sembunyikan overflow dari pseudo-element */
+  overflow: hidden; 
 }
 
 .upload-section::before {
@@ -209,7 +194,7 @@ body {
 }
 
 .upload-section:hover {
-  border-color: var(--primary-color-start); /* Menggunakan variabel primary */
+  border-color: var(--primary-color-start); 
   background: rgba(102, 126, 234, 0.02);
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
@@ -219,7 +204,6 @@ body {
   left: 100%;
 }
 
-/* File Input Modern */
 .file-input-wrapper {
   position: relative;
   width: 100%;
@@ -271,7 +255,6 @@ body {
   transform: translateX(100%);
 }
 
-/* Button dengan efek modern */
 .upload-btn {
   background: var(--success-gradient);
   color: var(--white);
@@ -287,10 +270,10 @@ body {
   overflow: hidden;
   min-width: 200px;
   font-family: var(--font-primary);
-  display: flex; /* Untuk sentering ikon */
+  display: flex; 
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm); /* Spasi antara teks dan ikon */
+  gap: var(--space-sm); 
 }
 
 .upload-btn::before {
@@ -325,7 +308,6 @@ body {
   opacity: 0.7;
 }
 
-/* Message Box dengan animasi yang halus */
 .message-box {
   padding: var(--space-lg);
   border-radius: var(--radius-lg);
@@ -338,7 +320,7 @@ body {
   text-align: center;
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-sm); /* Tambah shadow default */
+  box-shadow: var(--shadow-sm); 
 }
 
 .message-box.show {
@@ -365,7 +347,6 @@ body {
   color: #b71c1c;
 }
 
-/* Loading Spinner Modern */
 .loading-spinner {
   opacity: 0;
   visibility: hidden;
@@ -393,7 +374,6 @@ body {
   animation: spin 1s linear infinite;
   margin-bottom: var(--space-md);
   position: relative;
-  /* conic-gradient untuk efek putaran berwarna */
   background: conic-gradient(from 0deg, var(--primary-color-start), transparent);
 }
 
@@ -409,12 +389,11 @@ body {
   animation: spin 2s linear infinite reverse;
 }
 
-/* Results Section */
 .results-section {
   opacity: 0;
   visibility: hidden;
   transition: all var(--transition-slow);
-  transform: translateY(20px); /* Mulai sedikit ke bawah untuk efek slide-up */
+  transform: translateY(20px); 
 }
 
 .results-section.show {
@@ -423,7 +402,6 @@ body {
   transform: translateY(0);
 }
 
-/* Stats Grid dengan hover effects dan tampilan yang lebih bersih */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -441,7 +419,7 @@ body {
   border: 1px solid var(--gray-200);
   position: relative;
   overflow: hidden;
-  cursor: default; /* Tidak bisa diklik */
+  cursor: default; 
 }
 
 .stat-card::before {
@@ -451,9 +429,9 @@ body {
   left: 0;
   right: 0;
   height: 4px;
-  background: var(--primary-gradient); /* Warna gradien di atas card */
+  background: var(--primary-gradient); 
   transform: scaleX(0);
-  transform-origin: left; /* Animasi dari kiri */
+  transform-origin: left; 
   transition: transform var(--transition-normal);
 }
 
@@ -470,7 +448,6 @@ body {
   font-size: clamp(2rem, 3vw, 2.5rem);
   margin-bottom: var(--space-sm);
   font-weight: 800;
-  /* Menggunakan text-gradient untuk warna pada angka */
   background: var(--primary-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -483,7 +460,6 @@ body {
   font-weight: 600;
 }
 
-/* Warna khusus untuk anomali dan normal stats */
 .stat-card.anomaly h3 {
   background: linear-gradient(135deg, var(--danger), #ff6b6b);
   -webkit-background-clip: text;
@@ -498,21 +474,18 @@ body {
   background-clip: text;
 }
 
-/* Charts Container Layout */
 .charts-container {
   display: grid;
-  grid-template-columns: 1fr; /* Default: satu kolom */
+  grid-template-columns: 1fr; 
   gap: var(--space-2xl);
   margin-bottom: var(--space-2xl);
 }
 
-/* Layout multi-kolom untuk layar lebar */
 @media (min-width: 1024px) {
   .charts-container {
-    grid-template-columns: 2fr 1fr; /* Grafik utama lebih lebar */
+    grid-template-columns: 2fr 1fr; 
   }
   
-  /* Membuat chart pertama mengambil dua baris di layout grid */
   .chart-card:first-child {
     grid-row: span 2;
   }
@@ -525,7 +498,7 @@ body {
   box-shadow: var(--shadow-md);
   border: 1px solid var(--gray-200);
   transition: all var(--transition-normal);
-  display: flex; /* Untuk menata judul dan canvas */
+  display: flex; 
   flex-direction: column;
 }
 
@@ -547,26 +520,25 @@ body {
 
 .chart-container {
   position: relative;
-  height: 350px; /* Tinggi default chart */
-  min-height: 200px; /* Minimal tinggi agar tidak hilang di layar kecil */
-  flex-grow: 1; /* Biarkan canvas memenuhi ruang yang tersedia */
-  background: var(--gray-50); /* Background untuk area canvas */
+  height: 350px; 
+  min-height: 200px; 
+  flex-grow: 1; 
+  background: var(--gray-50); 
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   border: 1px solid var(--gray-200);
 }
 
 .chart-container.large {
-  height: 450px; /* Tinggi lebih besar untuk chart utama */
+  height: 450px; 
 }
 
-/* Controls untuk filter chart */
 .controls {
   display: flex;
   gap: var(--space-lg);
   margin-bottom: var(--space-lg);
   flex-wrap: wrap;
-  align-items: flex-end; /* Sejajarkan bagian bawah elemen */
+  align-items: flex-end; 
 }
 
 .control-group {
@@ -592,7 +564,7 @@ body {
   font-family: var(--font-primary);
   font-weight: 500;
   background-color: var(--white);
-  box-shadow: var(--shadow-inset); /* Shadow inset untuk efek kedalaman */
+  box-shadow: var(--shadow-inset); 
   transition: all var(--transition-fast);
   min-width: 140px;
 }
@@ -600,13 +572,12 @@ body {
 .control-group select:focus,
 .control-group input:focus {
   border-color: var(--primary-color-start);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); /* Focus ring yang lebih halus */
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); 
   outline: none;
 }
 
-/* Anomaly List dengan styling modern dan efek hover */
 .anomaly-list {
-  background: linear-gradient(135deg, #fff8e1, #fff3c4); /* Gradien kuning */
+  background: linear-gradient(135deg, #fff8e1, #fff3c4); 
   border: 2px solid var(--warning);
   border-radius: var(--radius-xl);
   padding: var(--space-2xl);
@@ -622,16 +593,16 @@ body {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--warning), #ff9800); /* Garis atas gradien */
+  background: linear-gradient(90deg, var(--warning), #ff9800); 
 }
 
 .anomaly-list h4 {
-  color: #bf8f00; /* Warna teks kuning gelap */
+  color: #bf8f00; 
   margin-bottom: var(--space-lg);
   font-size: 1.25rem;
   font-weight: 700;
   padding-bottom: var(--space-md);
-  border-bottom: 2px solid rgba(191, 143, 0, 0.2); /* Garis bawah kuning transparan */
+  border-bottom: 2px solid rgba(191, 143, 0, 0.2); 
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -642,7 +613,7 @@ body {
   padding: var(--space-lg);
   margin-bottom: var(--space-md);
   border-radius: var(--radius-lg);
-  border-left: 4px solid var(--warning); /* Border kiri kuning */
+  border-left: 4px solid var(--warning); 
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -664,7 +635,7 @@ body {
 }
 
 .anomaly-item:hover {
-  transform: translateX(4px); /* Geser sedikit ke kanan saat hover */
+  transform: translateX(4px); 
   box-shadow: var(--shadow-md);
 }
 
@@ -673,7 +644,7 @@ body {
 }
 
 .anomaly-item:last-child {
-  margin-bottom: 0; /* Hapus margin bawah pada item terakhir */
+  margin-bottom: 0; 
 }
 
 .anomaly-item strong {
@@ -687,7 +658,6 @@ body {
   font-size: 0.875rem;
 }
 
-/* Animations */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -713,36 +683,33 @@ body {
   to { opacity: 1; }
 }
 
-/* Responsive Design */
 @media (max-width: 1400px) {
-  /* Di layar yang lebih sempit dari max-width container, kurangi padding body */
   body {
-    padding: var(--space-md); /* Kurangi padding untuk memberi lebih banyak ruang ke container */
+    padding: var(--space-md); 
   }
   #root {
-    padding: 0; /* Hapus padding di root karena sudah di body */
+    padding: 0; 
   }
   .container {
-    max-height: calc(100vh - (var(--space-md) * 2)); /* Sesuaikan max-height container */
+    max-height: calc(100vh - (var(--space-md) * 2)); 
   }
 }
 
-
-@media (max-width: 1023px) { /* Untuk tablet dan layar lebih kecil dari laptop besar */
+@media (max-width: 1023px) { 
   .charts-container {
-    grid-template-columns: 1fr; /* Kembali ke satu kolom di layar menengah */
+    grid-template-columns: 1fr; 
   }
   .chart-card:first-child {
-    grid-row: auto; /* Reset grid-row span */
+    grid-row: auto; 
   }
 }
 
-@media (max-width: 768px) { /* Untuk tablet vertikal dan ponsel */
+@media (max-width: 768px) { 
   body {
     padding: var(--space-sm);
   }
   .container {
-    border-radius: var(--radius-xl); /* Radius lebih kecil di layar kecil */
+    border-radius: var(--radius-xl); 
     max-height: calc(100vh - (var(--space-sm) * 2));
   }
   .header {
@@ -761,7 +728,7 @@ body {
     padding: var(--space-xl);
   }
   .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Sesuaikan minwidth card */
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
     gap: var(--space-md);
   }
   .stat-card {
@@ -805,7 +772,7 @@ body {
   }
 }
 
-@media (max-width: 480px) { /* Untuk ponsel kecil */
+@media (max-width: 480px) { 
   body {
     padding: var(--space-sm);
   }
@@ -871,32 +838,31 @@ body {
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   :root {
-    --white: #1a1a1a; /* Background elements */
-    --gray-50: #2d2d2d; /* Lightest dark background */
-    --gray-100: #3a3a3a; /* Darker background, light borders */
-    --gray-200: #4a4a4a; /* More prominent dark borders */
+    --white: #1a1a1a; 
+    --gray-50: #2d2d2d; 
+    --gray-100: #3a3a3a; 
+    --gray-200: #4a4a4a; 
     --gray-300: #5a5a5a;
     --gray-400: #6a6a6a;
-    --gray-500: #8a8a8a; /* Disabled background */
-    --gray-600: #b0b0b0; /* Secondary text */
-    --gray-700: #d0d0d0; /* Primary text lighter */
-    --gray-800: #e0e0e0; /* Primary text */
-    --gray-900: #f0f0f0; /* Accent for very light text */
+    --gray-500: #8a8a8a; 
+    --gray-600: #b0b0b0; 
+    --gray-700: #d0d0d0; 
+    --gray-800: #e0e0e0; 
+    --gray-900: #f0f0f0; 
 
-    --primary-color-start: #4a5ee7; /* Darker primary for dark mode */
+    --primary-color-start: #4a5ee7; 
     --primary-color-end: #5a3ba2;
     --primary-gradient: linear-gradient(135deg, var(--primary-color-start) 0%, var(--primary-color-end) 100%);
-    --success-gradient: linear-gradient(135deg, #1e88e5, #00acc1); /* Biru lebih sejuk untuk success di dark mode */
-    --danger: #ef5350; /* Merah yang lebih lembut */
-    --warning: #ffb300; /* Kuning yang lebih hangat */
-    --info: #29b6f6; /* Biru terang */
+    --success-gradient: linear-gradient(135deg, #1e88e5, #00acc1); 
+    --danger: #ef5350; 
+    --warning: #ffb300; 
+    --info: #29b6f6; 
 
-    /* Update text-fill-color for stat-cards in dark mode */
     .stat-card h3,
     .stat-card.anomaly h3,
     .stat-card.normal h3 {
-      -webkit-text-fill-color: unset; /* Izinkan warna teks biasa */
-      color: var(--gray-800); /* Default text color */
+      -webkit-text-fill-color: unset; 
+      color: var(--gray-800); 
     }
 
     .stat-card.anomaly h3 {
@@ -906,7 +872,7 @@ body {
         color: var(--success);
     }
     .stat-card::before {
-        background: linear-gradient(90deg, var(--primary-color-end), var(--primary-color-start)); /* Reverse gradient for aesthetic */
+        background: linear-gradient(90deg, var(--primary-color-end), var(--primary-color-start)); 
     }
 
     .file-input-display,
@@ -940,7 +906,7 @@ body {
       border-color: var(--gray-200);
     }
     .anomaly-list {
-      background: linear-gradient(135deg, #3f350c, #4a3e0f); /* Darker warning background */
+      background: linear-gradient(135deg, #3f350c, #4a3e0f); 
       border-color: var(--warning);
     }
     .anomaly-list h4 {
@@ -967,7 +933,7 @@ body {
 
 /* Focus visible untuk keyboard navigation */
 *:focus-visible {
-  outline: 2px solid var(--primary-color-start); /* Menggunakan primary-color-start */
+  outline: 2px solid var(--primary-color-start); 
   outline-offset: 2px;
 }
 
@@ -986,11 +952,11 @@ html {
   .container {
     box-shadow: none;
     background: white;
-    max-height: unset; /* Hapus max-height untuk print */
-    overflow-y: visible; /* Izinkan konten penuh untuk print */
+    max-height: unset; 
+    overflow-y: visible; 
   }
   body {
-    background: white !important; /* Force white background for print */
+    background: white !important; 
     padding: 0 !important;
     display: block !important;
     height: auto !important;
