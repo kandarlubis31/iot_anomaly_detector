@@ -8,28 +8,15 @@
         "outputDirectory": "dist",
         "buildCommand": "npm install && npm run build"
       }
-    },
-    {
-      "src": "backend/app.py",
-      "use": "@vercel/python",
-      "config": {
-            "maxLambdaSize": "15mb",
-            "runtime": "python3.9"
-      }
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "backend/app.py"
-    },
-    {
       "src": "/(.*)",
-      "dest": "frontend/dist/$1"
+      "dest": "/index.html"
     }
   ],
   "env": {
-        "PYTHON_VERSION": "3.9.18" 
-  },
-  "installCommand": "npm install --prefix frontend && pip install -r backend/requirements.txt"
+    "VITE_API_URL": "https://iotanomalydetector-production.up.railway.app/" 
+  }
 }
