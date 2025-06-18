@@ -31,8 +31,5 @@
   "env": {
     "PYTHON_VERSION": "3.9.18"
   },
-  "installCommand": "npm install --prefix frontend && pip install -r backend/requirements.txt",
-  "ignore": [
-    "backend/models/*" 
-  ]
+  "installCommand": "npm install --prefix frontend && pip install -r backend/requirements.txt"
 }
