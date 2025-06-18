@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+backend/venv_backend/  # Pastikan ini ada dan benar
+frontend/node_modules/
+
+# Build artifacts
+frontend/dist/
+backend/__pycache__/
+.vercel/
+
+# IDE and Editor specific files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Environment variables
+.env
+
+# Python specific
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+build/
+dist/
+
+# Machine Learning Models and Data
+backend/*.joblib
+backend/models/ # Jika kamu ingin mengabaikan semua isinya, termasuk model yang ter-generate
+backend/uploads/
+backend/data/*.csv
+
+# Log files
+*.log
