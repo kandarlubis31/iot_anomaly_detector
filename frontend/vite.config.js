@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5000', // Alamat server Flask kamu
+        target: 'https://iotanomalydetector-production.up.railway.app/:5000', 
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/api'), // Pastikan path tetap /api
       },

@@ -117,6 +117,8 @@ class AnomalyDetector:
 app = Flask(__name__)
 CORS(app)
 
+CORS(app, resources={r"/api/*": {"origins": "https://iot-anomaly-detector.vercel.app/"}})
+
 detector = AnomalyDetector()
 
 INITIAL_TRAINING_DATA_PATH = os.path.join(DATA_DIR, "iot_data.csv")
