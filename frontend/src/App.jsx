@@ -691,7 +691,10 @@ function App() {
   };
 
   return (
-    <div className={`app-container ${currentTheme}`}> {/* Tambahkan class tema di sini */}
+    // Bungkus semua konten di dalam satu div parent tunggal
+    // Class 'app-container' yang sudah kita buat sebelumnya bisa jadi parent ini.
+    <div className={`app-container ${currentTheme}`}> 
+      {/* Link Material Icons dan Google Fonts tetap di sini */}
       <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
       <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
 
@@ -894,7 +897,7 @@ function App() {
       <div className="fab theme-toggle" onClick={toggleTheme} style={{ bottom: '90px' }}>
         <span className="material-icons">palette</span>
       </div>
-    </>
+    </div> 
   );
 }
 
