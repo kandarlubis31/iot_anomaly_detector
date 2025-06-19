@@ -1,89 +1,83 @@
 // frontend/src/App.js
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Chart as ChartJS, registerables } from "chart.js";
 import "chartjs-adapter-date-fns";
 import "./App.css";
 
-// Daftarkan semua registerables dari Chart.js
+// Register Chart.js components once
 ChartJS.register(...registerables);
 
+// Constants
+const API_BASE_URL = process.env.VITE_API_URL || "https://iotanomalydetector-production.up.railway.app";
+const MESSAGE_TIMEOUT = 5000;
+const ANOMALY_DISPLAY_LIMIT = 50;
+const HISTOGRAM_BINS = 30;
+const SCORE_BINS = 15;
+
+// Default states
+const DEFAULT_SUMMARY_STATS = {
+  total_points: 0,
+  num_anomalies: 0,
+  normal_points: 0,
+  anomaly_percentage: 0,
+};
+
+const DEFAULT_FILE_DISPLAY = {
+  icon: "📁",
+  name: "Pilih File CSV",
+  details: "Klik untuk memuat data sensor IoT Anda (.csv)",
+  color: "var(--text-muted)",
+};
+
 function App() {
+  // Core states
   const [fileSelected, setFileSelected] = useState(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
   const [loading, setLoading] = useState(false);
-
   const [resultsVisible, setResultsVisible] = useState(false);
-  const [summaryStats, setSummaryStats] = useState({
-    total_points: 0,
-    num_anomalies: 0,
-    normal_points: 0,
-    anomaly_percentage: 0,
-  });
-  const [rawData, setRawData] = useState(null); // Data mentah dari API
-  const [processedData, setProcessedData] = useState(null); // Data yang sudah difilter untuk chart
-
+  
+  // Data states
+  const [summaryStats, setSummaryStats] = useState(DEFAULT_SUMMARY_STATS);
+  const [rawData, setRawData] = useState(null);
   const [chartType, setChartType] = useState("line");
   const [dataRange, setDataRange] = useState("all");
-
-  const [fileDisplayContent, setFileDisplayContent] = useState({
-    icon: "📁",
-    name: "Pilih File CSV",
-    details: "Klik untuk memuat data sensor IoT Anda (.csv)",
-    color: "var(--text-muted)",
-  });
-
+  const [fileDisplayContent, setFileDisplayContent] = useState(DEFAULT_FILE_DISPLAY);
+  
+  // UI states
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState("default"); // 'default' untuk terang, 'dark-theme' untuk gelap
+  const [currentTheme, setCurrentTheme] = useState("default");
 
+  // Refs
   const mainChartRef = useRef(null);
   const distributionChartRef = useRef(null);
   const scoreChartRef = useRef(null);
-  const csvFileInputRef = useRef(null); // Ref untuk input file
+  const csvFileInputRef = useRef(null);
+  const messageTimeoutRef = useRef(null);
 
-  const API_BASE_URL =
-    process.env.VITE_API_URL || "https://iotanomalydetector-production.up.railway.app";
+  // Memoized processed data
+  const processedData = useMemo(() => {
+    if (!rawData) return null;
+    return filterDataByRange(rawData, dataRange);
+  }, [rawData, dataRange]);
 
-  // Efek samping saat komponen di-mount atau rawData berubah
-  useEffect(() => {
-    // Sembunyikan bagian hasil di awal jika belum ada data
-    if (!rawData) {
-      setResultsVisible(false);
-    }
-    setLoading(false);
-  }, [rawData]);
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    setFileSelected(file);
-
-    if (file) {
-      setFileDisplayContent({
-        icon: "📄",
-        name: file.name,
-        details: `File dipilih (${(file.size / 1024).toFixed(1)} KB)`,
-        color: "var(--color-secondary)",
-      });
-    } else {
-      setFileDisplayContent({
-        icon: "📁",
-        name: "Pilih File CSV",
-        details: "Klik untuk memuat data sensor IoT Anda (.csv)",
-        color: "var(--text-muted)",
-      });
-    }
-  };
-
-  const showMessage = (msg, type = "info") => {
+  // Utility functions
+  const showMessage = useCallback((msg, type = "info") => {
     setMessage(msg);
     setMessageType(type);
-    // Timeout untuk menyembunyikan pesan, bisa disesuaikan
-    setTimeout(() => {
+    
+    // Clear existing timeout
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current);
+    }
+    
+    // Set new timeout
+    messageTimeoutRef.current = setTimeout(() => {
       setMessage("");
-    }, 5000);
-  };
+    }, MESSAGE_TIMEOUT);
+  }, []);
 
-  const updateSummaryStats = (result) => {
+  const updateSummaryStats = useCallback((result) => {
     const total = result.total_points;
     const anomalies = result.num_anomalies;
     const normal = total - anomalies;
@@ -95,39 +89,34 @@ function App() {
       normal_points: normal,
       anomaly_percentage: percentage,
     });
-  };
+  }, []);
 
   const createHistogram = useCallback((data, bins) => {
-    if (!data || data.length === 0) return { labels: [], counts: [] };
+    if (!data?.length) return { labels: [], counts: [] };
+    
     const min = Math.min(...data);
     const max = Math.max(...data);
     const binSize = max === min ? 1 : (max - min) / bins;
 
     const counts = new Array(bins).fill(0);
-    const labels = [];
-
-    for (let i = 0; i < bins; i++) {
+    const labels = Array.from({ length: bins }, (_, i) => {
       const lowerBound = min + i * binSize;
       const upperBound = lowerBound + binSize;
-      labels.push(`${lowerBound.toFixed(1)}-${upperBound.toFixed(1)}`);
-    }
+      return `${lowerBound.toFixed(1)}-${upperBound.toFixed(1)}`;
+    });
 
     data.forEach((value) => {
       let binIndex = Math.floor((value - min) / binSize);
-      if (binIndex >= bins) {
-        binIndex = bins - 1;
-      }
-      if (binIndex < 0) {
-        binIndex = 0;
-      }
+      binIndex = Math.max(0, Math.min(bins - 1, binIndex));
       counts[binIndex]++;
     });
 
     return { labels, counts };
   }, []);
 
-  const filterDataByRange = useCallback((data, range) => {
-    if (!data || !data.timestamps || data.timestamps.length === 0) {
+  // Filter data function (not a useCallback as it's called inside useMemo)
+  function filterDataByRange(data, range) {
+    if (!data?.timestamps?.length) {
       return {
         timestamps: [],
         temperatures: [],
@@ -137,12 +126,6 @@ function App() {
       };
     }
 
-    let filteredTimestamps = [];
-    let filteredTemperatures = [];
-    let filteredPowerConsumptions = [];
-    let filteredIsAnomaly = [];
-    let filteredAnomalyScores = [];
-
     let startIndex = 0;
     if (range === "last100") {
       startIndex = Math.max(0, data.timestamps.length - 100);
@@ -150,69 +133,73 @@ function App() {
       startIndex = Math.max(0, data.timestamps.length - 50);
     }
 
+    const filtered = {
+      timestamps: [],
+      temperatures: [],
+      power_consumptions: [],
+      is_anomaly: [],
+      anomaly_scores: [],
+    };
+
     for (let i = startIndex; i < data.timestamps.length; i++) {
       const isAnomaly = data.is_anomaly[i];
-      if (range === "anomalies" && !isAnomaly) {
-        continue;
-      }
-      filteredTimestamps.push(data.timestamps[i]);
-      filteredTemperatures.push(data.temperatures[i]);
-      filteredPowerConsumptions.push(data.power_consumptions[i]);
-      filteredIsAnomaly.push(isAnomaly);
-      filteredAnomalyScores.push(data.anomaly_scores[i]);
+      if (range === "anomalies" && !isAnomaly) continue;
+      
+      filtered.timestamps.push(data.timestamps[i]);
+      filtered.temperatures.push(data.temperatures[i]);
+      filtered.power_consumptions.push(data.power_consumptions[i]);
+      filtered.is_anomaly.push(isAnomaly);
+      filtered.anomaly_scores.push(data.anomaly_scores[i]);
     }
-    return {
-      timestamps: filteredTimestamps,
-      temperatures: filteredTemperatures,
-      power_consumptions: filteredPowerConsumptions,
-      is_anomaly: filteredIsAnomaly,
-      anomaly_scores: filteredAnomalyScores,
-    };
+
+    return filtered;
+  }
+
+  const destroyChart = useCallback((chartRef) => {
+    if (chartRef.current?.chart) {
+      chartRef.current.chart.destroy();
+      chartRef.current.chart = null; // Penting: set to null after destroying
+    }
   }, []);
 
-  const createMainChart = useCallback(
-    (data) => {
-      const canvas = mainChartRef.current;
-      if (!canvas) {
-        console.warn("Main Chart Canvas ref is not available.");
+  const createMainChart = useCallback((data) => {
+    const canvas = mainChartRef.current;
+    if (!canvas || !data?.timestamps?.length) {
+        destroyChart(mainChartRef); // Pastikan chart dihancurkan jika data tidak valid
         return;
+    }
+
+    destroyChart(mainChartRef);
+
+    const ctx = canvas.getContext("2d");
+    const datasets = [];
+    const timestampsParsed = data.timestamps.map(ts => new Date(ts));
+
+    // Separate normal and anomaly data points
+    const normalPoints = [];
+    const anomalyPoints = [];
+
+    timestampsParsed.forEach((timestamp, index) => {
+      const point = {
+        x: timestamp,
+        y: data.temperatures[index],
+        y2: data.power_consumptions[index],
+        score: data.anomaly_scores[index],
+      };
+
+      if (data.is_anomaly[index]) {
+        anomalyPoints.push(point);
+      } else {
+        normalPoints.push(point);
       }
+    });
 
-      // Hancurkan chart sebelumnya jika ada
-      if (canvas.chart) {
-        canvas.chart.destroy();
-      }
-
-      if (!data || !data.timestamps || data.timestamps.length === 0) {
-        console.warn("No data provided for main chart.");
-        return;
-      }
-
-      const ctx = canvas.getContext("2d");
-      const datasets = [];
-      const timestampsParsed = data.timestamps.map((ts) => new Date(ts));
-
-      const normalDataPoints = timestampsParsed
-        .map((timestamp, index) => ({
-          x: timestamp,
-          y: data.temperatures[index],
-          y2: data.power_consumptions[index],
-        }))
-        .filter((_, index) => !data.is_anomaly[index]);
-
-      const anomalyDataPoints = timestampsParsed
-        .map((timestamp, index) => ({
-          x: timestamp,
-          y: data.temperatures[index],
-          y2: data.power_consumptions[index],
-          score: data.anomaly_scores[index],
-        }))
-        .filter((_, index) => data.is_anomaly[index]);
-
-      if (chartType === "line" || chartType === "both") {
-        datasets.push({
+    // Add line datasets
+    if (chartType === "line" || chartType === "both") {
+      datasets.push(
+        {
           label: "Suhu (Normal)",
-          data: normalDataPoints.map((d) => ({ x: d.x, y: d.y })),
+          data: normalPoints.map(d => ({ x: d.x, y: d.y })),
           borderColor: "var(--color-primary)",
           backgroundColor: "rgba(0, 123, 255, 0.1)",
           borderWidth: 2,
@@ -221,11 +208,10 @@ function App() {
           pointRadius: 0,
           pointHoverRadius: 3,
           type: "line",
-        });
-
-        datasets.push({
+        },
+        {
           label: "Daya (Normal)",
-          data: normalDataPoints.map((d) => ({ x: d.x, y: d.y2 })),
+          data: normalPoints.map(d => ({ x: d.x, y: d.y2 })),
           borderColor: "var(--color-secondary)",
           backgroundColor: "rgba(40, 167, 69, 0.1)",
           borderWidth: 2,
@@ -235,340 +221,266 @@ function App() {
           pointHoverRadius: 3,
           yAxisID: "y1",
           type: "line",
-        });
-      }
+        }
+      );
+    }
 
-      if (chartType === "scatter" || chartType === "both") {
-        datasets.push({
+    // Add scatter datasets
+    if (chartType === "scatter" || chartType === "both") {
+      datasets.push(
+        {
           label: "Suhu (Anomali)",
-          data: anomalyDataPoints.map((d) => ({
-            x: d.x,
-            y: d.y,
-            score: d.score,
-          })),
+          data: anomalyPoints.map(d => ({ x: d.x, y: d.y, score: d.score })),
           borderColor: "var(--color-danger)",
           backgroundColor: "rgba(220, 53, 69, 0.6)",
           borderWidth: 2,
           pointRadius: 8,
           pointHoverRadius: 10,
           pointStyle: "triangle",
-          rotation: 0,
           showLine: false,
           type: "scatter",
-        });
-
-        datasets.push({
+        },
+        {
           label: "Daya (Anomali)",
-          data: anomalyDataPoints.map((d) => ({
-            x: d.x,
-            y: d.y2,
-            score: d.score,
-          })),
+          data: anomalyPoints.map(d => ({ x: d.x, y: d.y2, score: d.score })),
           borderColor: "var(--color-warning)",
           backgroundColor: "rgba(255, 193, 7, 0.6)",
           borderWidth: 2,
           pointRadius: 8,
           pointHoverRadius: 10,
           pointStyle: "star",
-          rotation: 0,
           showLine: false,
           type: "scatter",
           yAxisID: "y1",
-        });
-      }
-
-      canvas.chart = new ChartJS(ctx, {
-        type: "line",
-        data: { datasets },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            mode: "index",
-            intersect: false,
-          },
-          plugins: {
-            legend: {
-              position: "top",
-              labels: {
-                color: "var(--text-main)",
-                font: { size: 14 },
-              },
-            },
-            tooltip: {
-              callbacks: {
-                title: function (context) {
-                  return ChartJS.adapters.date
-                    .toDate(context[0].parsed.x)
-                    .toLocaleString();
-                },
-                label: function (context) {
-                  let label = context.dataset.label || "";
-                  if (label) {
-                    label += ": ";
-                  }
-                  if (context.parsed.y !== null) {
-                    label += context.parsed.y.toFixed(2);
-                  }
-                  if (
-                    context.dataset.label.includes("Anomali") &&
-                    context.raw.score !== undefined
-                  ) {
-                    label += ` (Skor: ${context.raw.score.toFixed(3)})`;
-                  }
-                  return label;
-                },
-              },
-              backgroundColor: "rgba(0,0,0,0.7)",
-              titleColor: "var(--text-contrast)",
-              bodyColor: "var(--text-contrast)",
-            },
-          },
-          scales: {
-            x: {
-              type: "time",
-              time: {
-                unit: "minute",
-                displayFormats: {
-                  minute: "MMM d, HH:mm",
-                },
-              },
-              title: {
-                display: true,
-                text: "Timestamp",
-                color: "var(--text-main)",
-                font: { size: 16, weight: "bold" },
-              },
-              ticks: {
-                color: "var(--text-muted)",
-              },
-              grid: {
-                color: "rgba(255,255,255,0.08)",
-              },
-            },
-            y: {
-              type: "linear",
-              display: true,
-              position: "left",
-              title: {
-                display: true,
-                text: "Suhu (°C)",
-                color: "var(--text-main)",
-                font: { size: 16, weight: "bold" },
-              },
-              ticks: {
-                color: "var(--text-muted)",
-              },
-              grid: {
-                color: "rgba(255,255,255,0.08)",
-              },
-            },
-            y1: {
-              type: "linear",
-              display: true,
-              position: "right",
-              grid: {
-                drawOnChartArea: false,
-                color: "rgba(255,255,255,0.08)",
-              },
-              title: {
-                display: true,
-                text: "Konsumsi Daya (W)",
-                color: "var(--text-main)",
-                font: { size: 16, weight: "bold" },
-              },
-              ticks: {
-                color: "var(--text-muted)",
-              },
-            },
-          },
-        },
-      });
-    },
-    [chartType]
-  );
-
-  const createDistributionChart = useCallback(
-    (data) => {
-      const canvas = distributionChartRef.current;
-      if (!canvas) {
-        console.warn("Distribution Chart Canvas ref is not available.");
-        return;
-      }
-      if (canvas.chart) {
-        canvas.chart.destroy();
-      }
-
-      if (!data || !data.temperatures || data.temperatures.length === 0) {
-        console.warn("No data provided for distribution chart.");
-        return;
-      }
-
-      const ctx = canvas.getContext("2d");
-      const allMeasurements = data.temperatures.concat(data.power_consumptions);
-      const bins = createHistogram(allMeasurements, 30);
-
-      canvas.chart = new ChartJS(ctx, {
-        type: "bar",
-        data: {
-          labels: bins.labels,
-          datasets: [
-            {
-              label: "Distribusi Nilai Sensor Gabungan",
-              data: bins.counts,
-              backgroundColor: "rgba(0, 123, 255, 0.6)",
-              borderColor: "rgba(0, 123, 255, 1)",
-              borderWidth: 1,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              labels: {
-                color: "var(--text-main)",
-              },
-            },
-            tooltip: {
-              backgroundColor: "rgba(0,0,0,0.7)",
-              titleColor: "var(--text-contrast)",
-              bodyColor: "var(--text-contrast)",
-            },
-          },
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: "Rentang Nilai",
-                color: "var(--text-main)",
-              },
-              ticks: {
-                color: "var(--text-muted)",
-              },
-              grid: {
-                color: "rgba(255,255,255,0.08)",
-              },
-            },
-            y: {
-              title: {
-                display: true,
-                text: "Frekuensi",
-                color: "var(--text-main)",
-              },
-              beginAtZero: true,
-              ticks: {
-                color: "var(--text-muted)",
-              },
-              grid: {
-                color: "rgba(255,255,255,0.08)",
-              },
-            },
-          },
-        },
-      });
-    },
-    [createHistogram]
-  );
-
-  const createScoreChart = useCallback(
-    (data) => {
-      const canvas = scoreChartRef.current;
-      if (!canvas) {
-        console.warn("Score Chart Canvas ref is not available.");
-        return;
-      }
-      if (canvas.chart) {
-        canvas.chart.destroy();
-      }
-
-      if (!data || !data.anomaly_scores || data.anomaly_scores.length === 0) {
-        console.warn("No data provided for score chart.");
-        return;
-      }
-
-      const ctx = canvas.getContext("2d");
-      const anomalyScoresOnly = data.anomaly_scores.filter(
-        (_, i) => data.is_anomaly[i]
+        }
       );
-      const scoreBins = createHistogram(anomalyScoresOnly, 15);
+    }
 
-      canvas.chart = new ChartJS(ctx, {
-        type: "bar",
-        data: {
-          labels: scoreBins.labels,
-          datasets: [
-            {
-              label: "Distribusi Skor Anomali",
-              data: scoreBins.counts,
-              backgroundColor: "rgba(220, 53, 69, 0.6)",
-              borderColor: "rgba(220, 53, 69, 1)",
-              borderWidth: 1,
-            },
-          ],
+    canvas.chart = new ChartJS(ctx, {
+      type: "line",
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 300, // Faster animation
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
+        interaction: {
+          mode: "index",
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            position: "top",
+            labels: {
+              color: "var(--text-main)",
+              font: { size: 14 },
+            },
+          },
+          tooltip: {
+            callbacks: {
+              title: (context) => new Date(context[0].parsed.x).toLocaleString(),
+              label: (context) => {
+                let label = context.dataset.label || "";
+                if (label) label += ": ";
+                if (context.parsed.y !== null) {
+                  label += context.parsed.y.toFixed(2);
+                }
+                if (context.dataset.label.includes("Anomali") && context.raw.score !== undefined) {
+                  label += ` (Skor: ${context.raw.score.toFixed(3)})`;
+                }
+                return label;
+              },
+            },
+            backgroundColor: "rgba(0,0,0,0.7)",
+            titleColor: "var(--text-contrast)",
+            bodyColor: "var(--text-contrast)",
+          },
+        },
+        scales: {
+          x: {
+            type: "time",
+            time: {
+              unit: "minute",
+              displayFormats: { minute: "MMM d, HH:mm" },
+            },
+            title: {
               display: true,
-              labels: {
-                color: "var(--text-main)",
-              },
+              text: "Timestamp",
+              color: "var(--text-main)",
+              font: { size: 16, weight: "bold" },
             },
-            tooltip: {
-              backgroundColor: "rgba(0,0,0,0.7)",
-              titleColor: "var(--text-contrast)",
-              bodyColor: "var(--text-contrast)",
-            },
+            ticks: { color: "var(--text-muted)" },
+            grid: { color: "rgba(255,255,255,0.08)" },
           },
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: "Rentang Skor Anomali",
-                color: "var(--text-main)",
-              },
-              ticks: {
-                color: "var(--text-muted)",
-              },
-              grid: {
-                color: "rgba(255,255,255,0.08)",
-              },
+          y: {
+            type: "linear",
+            display: true,
+            position: "left",
+            title: {
+              display: true,
+              text: "Suhu (°C)",
+              color: "var(--text-main)",
+              font: { size: 16, weight: "bold" },
             },
-            y: {
-              title: {
-                display: true,
-                text: "Frekuensi Anomali",
-                color: "var(--text-main)",
-              },
-              beginAtZero: true,
-              ticks: {
-                color: "var(--text-muted)",
-              },
-              grid: {
-                color: "rgba(255,255,255,0.08)",
-              },
+            ticks: { color: "var(--text-muted)" },
+            grid: { color: "rgba(255,255,255,0.08)" },
+          },
+          y1: {
+            type: "linear",
+            display: true,
+            position: "right",
+            grid: { drawOnChartArea: false, color: "rgba(255,255,255,0.08)" },
+            title: {
+              display: true,
+              text: "Konsumsi Daya (W)",
+              color: "var(--text-main)",
+              font: { size: 16, weight: "bold" },
             },
+            ticks: { color: "var(--text-muted)" },
           },
         },
-      });
-    },
-    [createHistogram]
-  );
+      },
+    });
+  }, [chartType, destroyChart]);
+
+  const createDistributionChart = useCallback((data) => {
+    const canvas = distributionChartRef.current;
+    if (!canvas || !data?.temperatures?.length) {
+        destroyChart(distributionChartRef);
+        return;
+    }
+
+    destroyChart(distributionChartRef);
+
+    const ctx = canvas.getContext("2d");
+    const allMeasurements = [...data.temperatures, ...data.power_consumptions];
+    const bins = createHistogram(allMeasurements, HISTOGRAM_BINS);
+
+    canvas.chart = new ChartJS(ctx, {
+      type: "bar",
+      data: {
+        labels: bins.labels,
+        datasets: [{
+          label: "Distribusi Nilai Sensor Gabungan",
+          data: bins.counts,
+          backgroundColor: "rgba(0, 123, 255, 0.6)",
+          borderColor: "rgba(0, 123, 255, 1)",
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 300 },
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: "var(--text-main)" },
+          },
+          tooltip: {
+            backgroundColor: "rgba(0,0,0,0.7)",
+            titleColor: "var(--text-contrast)",
+            bodyColor: "var(--text-contrast)",
+          },
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: "Rentang Nilai",
+              color: "var(--text-main)",
+            },
+            ticks: { color: "var(--text-muted)" },
+            grid: { color: "rgba(255,255,255,0.08)" },
+          },
+          y: {
+            title: {
+              display: true,
+              text: "Frekuensi",
+              color: "var(--text-main)",
+            },
+            beginAtZero: true,
+            ticks: { color: "var(--text-muted)" },
+            grid: { color: "rgba(255,255,255,0.08)" },
+          },
+        },
+      },
+    });
+  }, [createHistogram, destroyChart]);
+
+  const createScoreChart = useCallback((data) => {
+    const canvas = scoreChartRef.current;
+    if (!canvas || !data?.anomaly_scores?.length) {
+        destroyChart(scoreChartRef);
+        return;
+    }
+
+    destroyChart(scoreChartRef);
+
+    const ctx = canvas.getContext("2d");
+    const anomalyScoresOnly = data.anomaly_scores.filter((_, i) => data.is_anomaly[i]);
+    const scoreBins = createHistogram(anomalyScoresOnly, SCORE_BINS);
+
+    canvas.chart = new ChartJS(ctx, {
+      type: "bar",
+      data: {
+        labels: scoreBins.labels,
+        datasets: [{
+          label: "Distribusi Skor Anomali",
+          data: scoreBins.counts,
+          backgroundColor: "rgba(220, 53, 69, 0.6)",
+          borderColor: "rgba(220, 53, 69, 1)",
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 300 },
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: "var(--text-main)" },
+          },
+          tooltip: {
+            backgroundColor: "rgba(0,0,0,0.7)",
+            titleColor: "var(--text-contrast)",
+            bodyColor: "var(--text-contrast)",
+          },
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: "Rentang Skor Anomali",
+              color: "var(--text-main)",
+            },
+            ticks: { color: "var(--text-muted)" },
+            grid: { color: "rgba(255,255,255,0.08)" },
+          },
+          y: {
+            title: {
+              display: true,
+              text: "Frekuensi Anomali",
+              color: "var(--text-main)",
+            },
+            beginAtZero: true,
+            ticks: { color: "var(--text-muted)" },
+            grid: { color: "rgba(255,255,255,0.08)" },
+          },
+        },
+      },
+    });
+  }, [createHistogram, destroyChart]);
 
   const createAnomalyList = useCallback((data) => {
     const container = document.getElementById("anomaliesContainer");
-    if (!container) {
-      console.warn("Anomaly list container not found.");
-      return;
-    }
+    if (!container) return;
+
     container.innerHTML = "";
 
-    if (!data || !data.timestamps || data.timestamps.length === 0) {
+    if (!data?.timestamps?.length) {
       container.innerHTML = `<p style='color: var(--text-muted); text-align: center; padding: 16px;'>Tidak ada anomali kritis terdeteksi dalam kumpulan data ini.</p>`;
       return;
     }
@@ -591,9 +503,10 @@ function App() {
     }
 
     anomalies.sort((a, b) => b.score - a.score);
+    const anomaliesToDisplay = anomalies.slice(0, ANOMALY_DISPLAY_LIMIT);
 
-    const displayLimit = 50;
-    const anomaliesToDisplay = anomalies.slice(0, displayLimit);
+    // Use DocumentFragment for better performance
+    const fragment = document.createDocumentFragment();
 
     anomaliesToDisplay.forEach((anomaly) => {
       const item = document.createElement("div");
@@ -601,83 +514,46 @@ function App() {
       item.innerHTML = `
         <div>
           <strong>${anomaly.timestamp.toLocaleString()}</strong><br>
-          <small>Suhu: ${anomaly.temperature.toFixed(
-            2
-          )}°C, Daya: ${anomaly.power.toFixed(2)}W</small>
+          <small>Suhu: ${anomaly.temperature.toFixed(2)}°C, Daya: ${anomaly.power.toFixed(2)}W</small>
         </div>
         <span class="anomaly-score">Skor: ${anomaly.score.toFixed(3)}</span>
       `;
-      container.appendChild(item);
+      fragment.appendChild(item);
     });
 
-    if (anomalies.length > displayLimit) {
+    container.appendChild(fragment);
+
+    if (anomalies.length > ANOMALY_DISPLAY_LIMIT) {
       const moreInfo = document.createElement("p");
-      moreInfo.style =
-        "text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 0.875rem;";
-      moreInfo.textContent = `Menampilkan ${displayLimit} dari ${anomalies.length} total anomali.`;
+      moreInfo.style = "text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 0.875rem;";
+      moreInfo.textContent = `Menampilkan ${ANOMALY_DISPLAY_LIMIT} dari ${anomalies.length} total anomali.`;
       container.appendChild(moreInfo);
     }
   }, []);
 
-  // Efek samping untuk memfilter data saat rawData atau dataRange berubah
-  useEffect(() => {
-    if (rawData) {
-      const filteredData = filterDataByRange(rawData, dataRange);
-      setProcessedData(filteredData);
+  // Event handlers for UI interaction
+  const handleFileChange = useCallback((e) => {
+    const file = e.target.files[0];
+    setFileSelected(file);
+
+    if (file) {
+      setFileDisplayContent({
+        icon: "📄",
+        name: file.name,
+        details: `File dipilih (${(file.size / 1024).toFixed(1)} KB)`,
+        color: "var(--color-secondary)",
+      });
     } else {
-      setProcessedData(null);
+      setFileDisplayContent(DEFAULT_FILE_DISPLAY);
     }
-  }, [rawData, dataRange, filterDataByRange]);
+  }, []);
 
-  // Efek samping untuk merender ulang CHART UTAMA saja saat processedData atau chartType berubah
-  useEffect(() => {
-    if (
-      processedData &&
-      processedData.timestamps &&
-      processedData.timestamps.length > 0
-    ) {
-      createMainChart(processedData);
-    } else {
-      // Hancurkan chart jika data tidak ada
-      if (mainChartRef.current && mainChartRef.current.chart) {
-        mainChartRef.current.chart.destroy();
-      }
-    }
-  }, [processedData, chartType, createMainChart]);
+  const handleFileDisplayClick = useCallback(() => {
+    csvFileInputRef.current?.click();
+  }, []);
 
-  // Efek samping untuk merender ulang CHART DISTRIBUSI & SKOR + Anomaly List
-  // Ini hanya bergantung pada processedData, bukan chartType
-  useEffect(() => {
-    if (
-      processedData &&
-      processedData.timestamps &&
-      processedData.timestamps.length > 0
-    ) {
-      createDistributionChart(processedData);
-      createScoreChart(processedData);
-      createAnomalyList(processedData);
-    } else {
-      // Hancurkan chart dan bersihkan list jika data tidak ada
-      if (distributionChartRef.current && distributionChartRef.current.chart) {
-        distributionChartRef.current.chart.destroy();
-      }
-      if (scoreChartRef.current && scoreChartRef.current.chart) {
-        scoreChartRef.current.chart.destroy();
-      }
-      const container = document.getElementById("anomaliesContainer");
-      if (container) {
-        container.innerHTML = `<p style='color: var(--text-muted); text-align: center; padding: 16px;'>Tidak ada anomali kritis terdeteksi dalam kumpulan data ini.</p>`;
-      }
-    }
-  }, [processedData, createDistributionChart, createScoreChart, createAnomalyList]);
-
-  // Fungsi untuk memicu klik pada input file tersembunyi
-  const handleFileDisplayClick = () => {
-    csvFileInputRef.current.click();
-  };
-
-  const uploadCsv = async () => {
-    setMessage(""); // Bersihkan pesan sebelumnya
+  const uploadCsv = useCallback(async () => {
+    setMessage(""); // Clear previous messages
     if (!fileSelected) {
       showMessage("Silakan pilih file CSV terlebih dahulu untuk memulai analisis.", "error");
       return;
@@ -687,7 +563,7 @@ function App() {
     formData.append("csv_file", fileSelected);
 
     setLoading(true);
-    setResultsVisible(false); // Sembunyikan hasil sebelum upload baru
+    setResultsVisible(false); // Hide results while uploading new data
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/upload_csv`, {
@@ -699,62 +575,116 @@ function App() {
 
       if (response.ok) {
         showMessage("Deteksi anomali berhasil diselesaikan!", "success");
-        setRawData(result.chart_data); // Simpan data mentah
+        setRawData(result.chart_data); // Store raw data from API
         updateSummaryStats(result);
-        setResultsVisible(true); // Tampilkan bagian hasil setelah data berhasil di-load
+        setResultsVisible(true); // Show results section after successful data load
       } else {
-        console.error("Backend mengembalikan error:", result);
+        console.error("Backend error:", result);
         showMessage(
-          `Analisis gagal: ${
-            result.error || response.statusText
-          }. Harap verifikasi format CSV Anda.`,
+          `Analisis gagal: ${result.error || response.statusText}. Harap verifikasi format CSV Anda.`,
           "error"
         );
-        setResultsVisible(false); // Pastikan hasil tidak terlihat jika error
+        setResultsVisible(false); // Ensure results are hidden if there's an error
       }
     } catch (error) {
-      console.error("Fetch Error saat upload CSV:", error);
+      console.error("Network error:", error);
       showMessage(
         "Kesalahan jaringan: Tidak dapat terhubung ke server analisis. Silakan periksa koneksi Anda atau coba lagi nanti.",
         "error"
       );
-      setResultsVisible(false); // Pastikan hasil tidak terlihat jika error jaringan
+      setResultsVisible(false); // Ensure results are hidden if there's a network error
     } finally {
       setLoading(false);
     }
-  };
+  }, [fileSelected, showMessage, updateSummaryStats]);
 
-  const clearDataAndReload = () => {
+  const clearDataAndReload = useCallback(() => {
     setShowConfirmModal(true);
-  };
+  }, []);
 
-  const executeReset = () => {
+  const executeReset = useCallback(() => {
     setShowConfirmModal(false);
-    // Kosongkan semua state data dan reload halaman
+    
+    // Clean up charts
+    destroyChart(mainChartRef);
+    destroyChart(distributionChartRef);
+    destroyChart(scoreChartRef);
+    
+    // Reset all states
     setFileSelected(null);
     setRawData(null);
-    setProcessedData(null);
     setResultsVisible(false);
-    setSummaryStats({
-      total_points: 0,
-      num_anomalies: 0,
-      normal_points: 0,
-      anomaly_percentage: 0,
-    });
-    setFileDisplayContent({
-      icon: "📁",
-      name: "Pilih File CSV",
-      details: "Klik untuk memuat data sensor IoT Anda (.csv)",
-      color: "var(--text-muted)",
-    });
-    setMessage(""); // Kosongkan pesan
-    // Alternatif untuk reload penuh: window.location.reload();
-    // Tapi untuk pengalaman yang lebih mulus, kita reset state saja
-  };
+    setSummaryStats(DEFAULT_SUMMARY_STATS);
+    setFileDisplayContent(DEFAULT_FILE_DISPLAY);
+    setMessage("");
+    setChartType("line");
+    setDataRange("all");
+    
+    // Clear file input value to allow re-uploading the same file
+    if (csvFileInputRef.current) {
+      csvFileInputRef.current.value = "";
+    }
+    
+    // Clear message timeout
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current);
+    }
+  }, [destroyChart]);
 
-  const toggleTheme = () => {
-    setCurrentTheme((prevTheme) => (prevTheme === "default" ? "dark-theme" : "default"));
-  };
+  const toggleTheme = useCallback(() => {
+    setCurrentTheme(prev => prev === "default" ? "dark-theme" : "default");
+  }, []);
+
+  // --- Effects to render/destroy charts based on data availability and UI changes ---
+
+  // Effect to manage initial visibility of results section (when rawData changes)
+  useEffect(() => {
+    // If rawData is null (e.g., after reset), hide results.
+    // If rawData exists, results visibility is controlled by setResultsVisible(true/false) in uploadCsv
+    if (!rawData) {
+      setResultsVisible(false);
+      setLoading(false); // Ensure loading is off if data is cleared
+    }
+  }, [rawData]);
+
+  // Main chart rendering effect (depends on processedData and chartType)
+  useEffect(() => {
+    if (processedData?.timestamps?.length) {
+      createMainChart(processedData);
+    } else {
+      destroyChart(mainChartRef);
+    }
+  }, [processedData, chartType, createMainChart, destroyChart]);
+
+  // Other charts and anomaly list rendering effect (depends only on processedData)
+  useEffect(() => {
+    if (processedData?.timestamps?.length) {
+      createDistributionChart(processedData);
+      createScoreChart(processedData);
+      createAnomalyList(processedData);
+    } else {
+      destroyChart(distributionChartRef);
+      destroyChart(scoreChartRef);
+      
+      // Clear anomaly list display if no data
+      const container = document.getElementById("anomaliesContainer");
+      if (container) {
+        container.innerHTML = `<p style='color: var(--text-muted); text-align: center; padding: 16px;'>Tidak ada anomali kritis terdeteksi dalam kumpulan data ini.</p>`;
+      }
+    }
+  }, [processedData, createDistributionChart, createScoreChart, createAnomalyList, destroyChart]);
+
+  // Cleanup effect: destroys charts and clears timeout when component unmounts
+  useEffect(() => {
+    return () => {
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+      destroyChart(mainChartRef);
+      destroyChart(distributionChartRef);
+      destroyChart(scoreChartRef);
+    };
+  }, [destroyChart]); // destroyChart is a dependency because it's used inside the cleanup function
 
   return (
     <div className={`app-container ${currentTheme}`}>
@@ -772,9 +702,7 @@ function App() {
         <div className="main-content">
           {/* Message Box */}
           {message && (
-            <div
-              className={`message-box ${messageType}`}
-            >
+            <div className={`message-box ${messageType}`}>
               {message}
             </div>
           )}
@@ -834,9 +762,9 @@ function App() {
             </div>
           )}
 
-          {/* Results Section (Statistik, Grafik, dll.) */}
+          {/* Results Section */}
           {resultsVisible && (
-            <div className="results-section show"> {/* Tambahkan class 'show' secara eksplisit di sini */}
+            <div className="results-section show">
               <div className="stats-grid">
                 <div className="stat-card primary">
                   <h3 id="totalPoints">
@@ -897,7 +825,7 @@ function App() {
                   </div>
                 </div>
                 <div className="chart-container large">
-                  <canvas id="mainChart" ref={mainChartRef}></canvas>
+                  <canvas ref={mainChartRef}></canvas>
                 </div>
               </div>
 
@@ -908,7 +836,7 @@ function App() {
                     Metrik Distribusi Data
                   </h2>
                   <div className="chart-container">
-                    <canvas id="distributionChart" ref={distributionChartRef}></canvas>
+                    <canvas ref={distributionChartRef}></canvas>
                   </div>
                 </div>
 
@@ -918,7 +846,7 @@ function App() {
                     Magnitudo Skor Anomali
                   </h2>
                   <div className="chart-container">
-                    <canvas id="scoreChart" ref={scoreChartRef}></canvas>
+                    <canvas ref={scoreChartRef}></canvas>
                   </div>
                 </div>
               </div>
@@ -929,7 +857,7 @@ function App() {
         {/* Sidebar Content */}
         {resultsVisible && (
           <div className="sidebar-content">
-            <div className="card anomaly-list" id="anomalyList">
+            <div className="card anomaly-list">
               <h2 className="card-title">
                 <span className="material-icons">warning</span>
                 Peringatan Anomali Kritis
@@ -947,8 +875,8 @@ function App() {
         </div>
       )}
 
-      {/* Custom Confirmation Modal */}
-      <div id="confirmModal" className={`modal-overlay ${showConfirmModal ? "show" : ""}`}>
+      {/* Confirmation Modal */}
+      <div className={`modal-overlay ${showConfirmModal ? "show" : ""}`}>
         <div className="modal-content">
           <h3 className="modal-title">
             <span className="material-icons">help_outline</span> Konfirmasi Reset
