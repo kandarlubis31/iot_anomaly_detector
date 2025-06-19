@@ -1,8 +1,8 @@
-// frontend/src/App.js
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Chart as ChartJS, registerables } from "chart.js";
 import "chartjs-adapter-date-fns";
-import "./App.css";
+import "./App.css"; // Ini CSS dari tema baru
+import "./AppOriginal.css"; // Kalau ada CSS sebelumnya, bisa tetap diimport atau dihapus jika tidak diperlukan
 
 ChartJS.register(...registerables);
 
@@ -11,7 +11,6 @@ function App() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
   const [loading, setLoading] = useState(false);
-
   const [resultsVisible, setResultsVisible] = useState(false);
   const [summaryStats, setSummaryStats] = useState({
     total_points: 0,
@@ -21,23 +20,23 @@ function App() {
   });
   const [rawData, setRawData] = useState(null);
   const [processedData, setProcessedData] = useState(null);
-
   const [chartType, setChartType] = useState("line");
   const [dataRange, setDataRange] = useState("all");
-
   const [fileDisplayContent, setFileDisplayContent] = useState({
     icon: "📁",
     name: "Pilih File CSV",
-    details: "Klik di sini untuk memilih file data IoT Anda",
-    color: "var(--gray-600)",
+    details: "Klik untuk memuat data sensor IoT Anda (.csv)",
+    color: "var(--text-muted)",
   });
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState("default"); // State untuk mengelola tema
 
   const mainChartRef = useRef(null);
   const distributionChartRef = useRef(null);
   const scoreChartRef = useRef(null);
 
-  // Define API_BASE_URL here
-  const API_BASE_URL = process.env.VITE_API_URL || "https://iotanomalydetector-production.up.railway.app/"; 
+  const API_BASE_URL =
+    process.env.VITE_API_URL || "https://iotanomalydetector-production.up.railway.app";
 
   useEffect(() => {
     setResultsVisible(false);
@@ -53,14 +52,14 @@ function App() {
         icon: "📄",
         name: file.name,
         details: `File dipilih (${(file.size / 1024).toFixed(1)} KB)`,
-        color: "var(--success)",
+        color: "var(--secondary-data)",
       });
     } else {
       setFileDisplayContent({
         icon: "📁",
         name: "Pilih File CSV",
-        details: "Klik di sini untuk memilih file data IoT Anda",
-        color: "var(--gray-600)",
+        details: "Klik untuk memuat data sensor IoT Anda (.csv)",
+        color: "var(--text-muted)",
       });
     }
   };
@@ -68,19 +67,11 @@ function App() {
   const showMessage = (msg, type = "info") => {
     setMessage(msg);
     setMessageType(type);
-    if (type === "success") {
+    if (type === "success" || type === "error") {
       setTimeout(() => {
         setMessage("");
       }, 5000);
     }
-  };
-
-  const hideMessage = () => {
-    setMessage("");
-  };
-
-  const showLoading = (show) => {
-    setLoading(show);
   };
 
   const updateSummaryStats = (result) => {
@@ -107,11 +98,19 @@ function App() {
     const labels = [];
 
     for (let i = 0; i < bins; i++) {
-      labels.push((min + i * binSize).toFixed(1));
+      const lowerBound = min + i * binSize;
+      const upperBound = lowerBound + binSize;
+      labels.push(`${lowerBound.toFixed(1)}-${upperBound.toFixed(1)}`);
     }
 
     data.forEach((value) => {
-      const binIndex = Math.min(Math.floor((value - min) / binSize), bins - 1);
+      let binIndex = Math.floor((value - min) / binSize);
+      if (binIndex >= bins) {
+        binIndex = bins - 1;
+      }
+      if (binIndex < 0) {
+        binIndex = 0;
+      }
       counts[binIndex]++;
     });
 
@@ -120,7 +119,6 @@ function App() {
 
   const filterDataByRange = useCallback((data, range) => {
     if (!data || !data.timestamps || data.timestamps.length === 0) {
-      console.warn("filterDataByRange: Data tidak valid atau kosong.");
       return {
         timestamps: [],
         temperatures: [],
@@ -166,21 +164,17 @@ function App() {
   const createMainChart = useCallback(
     (data) => {
       const canvas = mainChartRef.current;
-      if (!canvas) {
-        console.warn("createMainChart: Ref Canvas utama tidak ditemukan.");
-        return;
-      }
-      if (!data || !data.timestamps || data.timestamps.length === 0) {
-        console.warn("createMainChart: Tidak ada data yang diberikan.");
-        if (canvas.chart) canvas.chart.destroy();
-        return;
-      }
+      if (!canvas) return;
 
-      const ctx = canvas.getContext("2d");
       if (canvas.chart) {
         canvas.chart.destroy();
       }
 
+      if (!data || !data.timestamps || data.timestamps.length === 0) {
+        return;
+      }
+
+      const ctx = canvas.getContext("2d");
       const datasets = [];
       const timestampsParsed = data.timestamps.map((ts) => new Date(ts));
 
@@ -205,24 +199,26 @@ function App() {
         datasets.push({
           label: "Suhu (Normal)",
           data: normalDataPoints.map((d) => ({ x: d.x, y: d.y })),
-          borderColor: "rgba(75, 192, 192, 1)",
-          backgroundColor: "rgba(75, 192, 192, 0.1)",
+          borderColor: "var(--primary-data)",
+          backgroundColor: "rgba(0, 123, 255, 0.1)",
           borderWidth: 2,
           fill: false,
-          tension: 0.1,
-          pointRadius: 2,
+          tension: 0.2,
+          pointRadius: 0,
+          pointHoverRadius: 3,
           type: "line",
         });
 
         datasets.push({
           label: "Daya (Normal)",
           data: normalDataPoints.map((d) => ({ x: d.x, y: d.y2 })),
-          borderColor: "rgba(153, 102, 255, 1)",
-          backgroundColor: "rgba(153, 102, 255, 0.1)",
+          borderColor: "var(--secondary-data)",
+          backgroundColor: "rgba(40, 167, 69, 0.1)",
           borderWidth: 2,
           fill: false,
-          tension: 0.1,
-          pointRadius: 2,
+          tension: 0.2,
+          pointRadius: 0,
+          pointHoverRadius: 3,
           yAxisID: "y1",
           type: "line",
         });
@@ -236,11 +232,13 @@ function App() {
             y: d.y,
             score: d.score,
           })),
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "rgba(255, 99, 132, 0.8)",
+          borderColor: "var(--error-data)",
+          backgroundColor: "rgba(220, 53, 69, 0.6)",
           borderWidth: 2,
-          pointRadius: 6,
-          pointHoverRadius: 8,
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          pointStyle: "triangle",
+          rotation: 0,
           showLine: false,
           type: "scatter",
         });
@@ -252,23 +250,17 @@ function App() {
             y: d.y2,
             score: d.score,
           })),
-          borderColor: "rgba(255, 159, 64, 1)",
-          backgroundColor: "rgba(255, 159, 64, 0.8)",
+          borderColor: "var(--warning-data)",
+          backgroundColor: "rgba(255, 193, 7, 0.6)",
           borderWidth: 2,
-          pointRadius: 6,
-          pointHoverRadius: 8,
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          pointStyle: "star",
+          rotation: 0,
           showLine: false,
           type: "scatter",
           yAxisID: "y1",
         });
-      }
-
-      if (datasets.length === 0) {
-        console.warn(
-          "createMainChart: Tidak ada dataset yang dibuat. Grafik mungkin kosong."
-        );
-        if (canvas.chart) canvas.chart.destroy();
-        return;
       }
 
       canvas.chart = new ChartJS(ctx, {
@@ -285,11 +277,8 @@ function App() {
             legend: {
               position: "top",
               labels: {
-                font: {
-                  size: 14,
-                  family: "var(--font-primary)",
-                },
-                color: "var(--gray-800)",
+                color: "var(--text-light)",
+                font: { size: 14 },
               },
             },
             tooltip: {
@@ -316,6 +305,9 @@ function App() {
                   return label;
                 },
               },
+              backgroundColor: "rgba(0,0,0,0.7)",
+              titleColor: "var(--text-light)",
+              bodyColor: "var(--text-light)",
             },
           },
           scales: {
@@ -325,21 +317,19 @@ function App() {
                 unit: "minute",
                 displayFormats: {
                   minute: "MMM d, HH:mm",
-                  hour: "MMM d, HH:mm",
-                  day: "MMM d",
                 },
               },
               title: {
                 display: true,
-                text: "Waktu",
-                font: {
-                  size: 14,
-                  family: "var(--font-primary)",
-                },
-                color: "var(--gray-700)",
+                text: "Timestamp",
+                color: "var(--text-light)",
+                font: { size: 16, weight: "bold" },
               },
               ticks: {
-                color: "var(--gray-600)",
+                color: "var(--text-muted)",
+              },
+              grid: {
+                color: "rgba(255,255,255,0.08)",
               },
             },
             y: {
@@ -349,14 +339,14 @@ function App() {
               title: {
                 display: true,
                 text: "Suhu (°C)",
-                font: {
-                  size: 14,
-                  family: "var(--font-primary)",
-                },
-                color: "var(--gray-700)",
+                color: "var(--text-light)",
+                font: { size: 16, weight: "bold" },
               },
               ticks: {
-                color: "var(--gray-600)",
+                color: "var(--text-muted)",
+              },
+              grid: {
+                color: "rgba(255,255,255,0.08)",
               },
             },
             y1: {
@@ -365,18 +355,16 @@ function App() {
               position: "right",
               grid: {
                 drawOnChartArea: false,
+                color: "rgba(255,255,255,0.08)",
               },
               title: {
                 display: true,
                 text: "Konsumsi Daya (W)",
-                font: {
-                  size: 14,
-                  family: "var(--font-primary)",
-                },
-                color: "var(--gray-700)",
+                color: "var(--text-light)",
+                font: { size: 16, weight: "bold" },
               },
               ticks: {
-                color: "var(--gray-600)",
+                color: "var(--text-muted)",
               },
             },
           },
@@ -389,22 +377,16 @@ function App() {
   const createDistributionChart = useCallback(
     (data) => {
       const canvas = distributionChartRef.current;
-      if (!canvas) {
-        console.warn(
-          "createDistributionChart: Ref Canvas distribusi tidak ditemukan."
-        );
-        return;
+      if (!canvas) return;
+      if (canvas.chart) {
+        canvas.chart.destroy();
       }
+
       if (!data || !data.temperatures || data.temperatures.length === 0) {
-        console.warn("createDistributionChart: Tidak ada data yang diberikan.");
-        if (canvas.chart) canvas.chart.destroy();
         return;
       }
 
       const ctx = canvas.getContext("2d");
-      if (canvas.chart) {
-        canvas.chart.destroy();
-      }
       const allMeasurements = data.temperatures.concat(data.power_consumptions);
       const bins = createHistogram(allMeasurements, 30);
 
@@ -414,10 +396,10 @@ function App() {
           labels: bins.labels,
           datasets: [
             {
-              label: "Distribusi Suhu & Daya",
+              label: "Distribusi Nilai Sensor Gabungan",
               data: bins.counts,
-              backgroundColor: "rgba(75, 192, 192, 0.6)",
-              borderColor: "rgba(75, 192, 192, 1)",
+              backgroundColor: "rgba(0, 123, 255, 0.6)",
+              borderColor: "rgba(0, 123, 255, 1)",
               borderWidth: 1,
             },
           ],
@@ -429,30 +411,42 @@ function App() {
             legend: {
               display: true,
               labels: {
-                font: { family: "var(--font-primary)" },
-                color: "var(--gray-800)",
+                color: "var(--text-light)",
               },
+            },
+            tooltip: {
+              backgroundColor: "rgba(0,0,0,0.7)",
+              titleColor: "var(--text-light)",
+              bodyColor: "var(--text-light)",
             },
           },
           scales: {
             x: {
               title: {
                 display: true,
-                text: "Nilai Pengukuran",
-                font: { family: "var(--font-primary)" },
-                color: "var(--gray-700)",
+                text: "Rentang Nilai",
+                color: "var(--text-light)",
               },
-              ticks: { color: "var(--gray-600)" },
+              ticks: {
+                color: "var(--text-muted)",
+              },
+              grid: {
+                color: "rgba(255,255,255,0.08)",
+              },
             },
             y: {
               title: {
                 display: true,
                 text: "Frekuensi",
-                font: { family: "var(--font-primary)" },
-                color: "var(--gray-700)",
+                color: "var(--text-light)",
               },
               beginAtZero: true,
-              ticks: { color: "var(--gray-600)" },
+              ticks: {
+                color: "var(--text-muted)",
+              },
+              grid: {
+                color: "rgba(255,255,255,0.08)",
+              },
             },
           },
         },
@@ -464,21 +458,20 @@ function App() {
   const createScoreChart = useCallback(
     (data) => {
       const canvas = scoreChartRef.current;
-      if (!canvas) {
-        console.warn("createScoreChart: Ref Canvas skor tidak ditemukan.");
-        return;
+      if (!canvas) return;
+      if (canvas.chart) {
+        canvas.chart.destroy();
       }
+
       if (!data || !data.anomaly_scores || data.anomaly_scores.length === 0) {
-        console.warn("createScoreChart: Tidak ada data yang diberikan.");
-        if (canvas.chart) canvas.chart.destroy();
         return;
       }
 
       const ctx = canvas.getContext("2d");
-      if (canvas.chart) {
-        canvas.chart.destroy();
-      }
-      const scoreBins = createHistogram(data.anomaly_scores, 15);
+      const anomalyScoresOnly = data.anomaly_scores.filter(
+        (_, i) => data.is_anomaly[i]
+      );
+      const scoreBins = createHistogram(anomalyScoresOnly, 15);
 
       canvas.chart = new ChartJS(ctx, {
         type: "bar",
@@ -488,8 +481,8 @@ function App() {
             {
               label: "Distribusi Skor Anomali",
               data: scoreBins.counts,
-              backgroundColor: "rgba(255, 159, 64, 0.6)",
-              borderColor: "rgba(255, 159, 64, 1)",
+              backgroundColor: "rgba(220, 53, 69, 0.6)",
+              borderColor: "rgba(220, 53, 69, 1)",
               borderWidth: 1,
             },
           ],
@@ -501,30 +494,42 @@ function App() {
             legend: {
               display: true,
               labels: {
-                font: { family: "var(--font-primary)" },
-                color: "var(--gray-800)",
+                color: "var(--text-light)",
               },
+            },
+            tooltip: {
+              backgroundColor: "rgba(0,0,0,0.7)",
+              titleColor: "var(--text-light)",
+              bodyColor: "var(--text-light)",
             },
           },
           scales: {
             x: {
               title: {
                 display: true,
-                text: "Skor Anomali",
-                font: { family: "var(--font-primary)" },
-                color: "var(--gray-700)",
+                text: "Rentang Skor Anomali",
+                color: "var(--text-light)",
               },
-              ticks: { color: "var(--gray-600)" },
+              ticks: {
+                color: "var(--text-muted)",
+              },
+              grid: {
+                color: "rgba(255,255,255,0.08)",
+              },
             },
             y: {
               title: {
                 display: true,
-                text: "Frekuensi",
-                font: { family: "var(--font-primary)" },
-                color: "var(--gray-700)",
+                text: "Frekuensi Anomali",
+                color: "var(--text-light)",
               },
               beginAtZero: true,
-              ticks: { color: "var(--gray-600)" },
+              ticks: {
+                color: "var(--text-muted)",
+              },
+              grid: {
+                color: "rgba(255,255,255,0.08)",
+              },
             },
           },
         },
@@ -535,60 +540,60 @@ function App() {
 
   const createAnomalyList = useCallback((data) => {
     const container = document.getElementById("anomaliesContainer");
-    if (!container) {
-      console.warn(
-        "createAnomalyList: Kontainer daftar anomali tidak ditemukan di DOM."
-      );
-      return;
-    }
+    if (!container) return;
     container.innerHTML = "";
 
     if (!data || !data.timestamps || data.timestamps.length === 0) {
-      console.warn("createAnomalyList: Tidak ada data yang diberikan.");
-      container.innerHTML =
-        '<p style="text-align: center; color: var(--gray-600); font-weight: bold;">Tidak ada data tersedia untuk daftar anomali.</p>';
+      container.innerHTML = `<p style='color: var(--text-muted); text-align: center; padding: 16px;'>Tidak ada anomali kritis terdeteksi dalam kumpulan data ini.</p>`;
       return;
     }
 
-    const anomalies = data.timestamps
-      .map((timestamp, index) => ({
-        timestamp: timestamp,
-        temperature: data.temperatures[index],
-        power: data.power_consumptions[index],
-        score: data.anomaly_scores[index],
-        isAnomaly: data.is_anomaly[index],
-      }))
-      .filter((item) => item.isAnomaly)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+    const anomalies = [];
+    for (let i = 0; i < data.is_anomaly.length; i++) {
+      if (data.is_anomaly[i]) {
+        anomalies.push({
+          timestamp: new Date(data.timestamps[i]),
+          temperature: data.temperatures[i],
+          power_consumption: data.power_consumptions[i],
+          score: data.anomaly_scores[i],
+        });
+      }
+    }
 
     if (anomalies.length === 0) {
-      container.innerHTML =
-        '<p style="text-align: center; color: var(--success); font-weight: bold;">Tidak ada anomali terdeteksi! 🎉</p>';
+      container.innerHTML = `<p style='color: var(--text-muted); text-align: center; padding: 16px;'>Tidak ada anomali kritis terdeteksi dalam kumpulan data ini.</p>`;
       return;
     }
 
-    anomalies.forEach((anomaly) => {
+    anomalies.sort((a, b) => b.score - a.score);
+
+    const displayLimit = 50;
+    const anomaliesToDisplay = anomalies.slice(0, displayLimit);
+
+    anomaliesToDisplay.forEach((anomaly) => {
       const item = document.createElement("div");
       item.className = "anomaly-item";
       item.innerHTML = `
         <div>
-          <strong>${new Date(anomaly.timestamp).toLocaleString()}</strong><br>
+          <strong>${anomaly.timestamp.toLocaleString()}</strong><br>
           <small>Suhu: ${anomaly.temperature.toFixed(
-            1
-          )}°C, Daya: ${anomaly.power.toFixed(1)}W</small>
+            2
+          )}°C, Daya: ${anomaly.power_consumption.toFixed(2)}W</small>
         </div>
-        <div style="text-align: right;">
-          <span style="color: var(--danger); font-weight: bold;">Skor Anomali: ${anomaly.score.toFixed(
-            3
-          )}</span>
-        </div>
+        <span class="anomaly-score">Skor: ${anomaly.score.toFixed(3)}</span>
       `;
       container.appendChild(item);
     });
+
+    if (anomalies.length > displayLimit) {
+      const moreInfo = document.createElement("p");
+      moreInfo.style =
+        "text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 0.875rem;";
+      moreInfo.textContent = `Menampilkan ${displayLimit} dari ${anomalies.length} total anomali.`;
+      container.appendChild(moreInfo);
+    }
   }, []);
 
-  // Efek untuk memproses ulang data saat rawData atau dataRange berubah
   useEffect(() => {
     if (rawData) {
       const filteredData = filterDataByRange(rawData, dataRange);
@@ -598,7 +603,6 @@ function App() {
     }
   }, [rawData, dataRange, filterDataByRange]);
 
-  // Efek untuk merender ulang CHART UTAMA saja
   useEffect(() => {
     if (
       processedData &&
@@ -606,52 +610,40 @@ function App() {
       processedData.timestamps.length > 0
     ) {
       createMainChart(processedData);
-    } else {
-      if (mainChartRef.current && mainChartRef.current.chart)
-        mainChartRef.current.chart.destroy();
-    }
-  }, [processedData, chartType, createMainChart]);
-
-  // Efek untuk merender ulang CHART DISTRIBUSI & SKOR + Anomaly List
-  // Hanya bergantung pada processedData, tidak pada chartType
-  useEffect(() => {
-    if (
-      processedData &&
-      processedData.timestamps &&
-      processedData.timestamps.length > 0
-    ) {
       createDistributionChart(processedData);
       createScoreChart(processedData);
       createAnomalyList(processedData);
     } else {
+      if (mainChartRef.current && mainChartRef.current.chart)
+        mainChartRef.current.chart.destroy();
       if (distributionChartRef.current && distributionChartRef.current.chart)
         distributionChartRef.current.chart.destroy();
       if (scoreChartRef.current && scoreChartRef.current.chart)
         scoreChartRef.current.chart.destroy();
       const container = document.getElementById("anomaliesContainer");
       if (container)
-        container.innerHTML =
-          '<p style="text-align: center; color: var(--gray-600); font-weight: bold;">Tidak ada data tersedia untuk ditampilkan.</p>';
+        container.innerHTML = `<p style='color: var(--text-muted); text-align: center; padding: 16px;'>Tidak ada anomali kritis terdeteksi dalam kumpulan data ini.</p>`;
     }
   }, [
     processedData,
+    chartType,
+    createMainChart,
     createDistributionChart,
     createScoreChart,
     createAnomalyList,
   ]);
 
-  // Logika utama untuk upload data
   const uploadCsv = async () => {
-    hideMessage();
+    setMessage("");
     if (!fileSelected) {
-      showMessage("Harap pilih file CSV terlebih dahulu.", "error");
+      showMessage("Silakan pilih file CSV terlebih dahulu untuk memulai analisis.", "error");
       return;
     }
 
     const formData = new FormData();
     formData.append("csv_file", fileSelected);
 
-    showLoading(true);
+    setLoading(true);
     setResultsVisible(false);
 
     try {
@@ -663,156 +655,247 @@ function App() {
       const result = await response.json();
 
       if (response.ok) {
-        showMessage("Deteksi anomali berhasil!", "success");
+        showMessage("Deteksi anomali berhasil diselesaikan!", "success");
         setRawData(result.chart_data);
         updateSummaryStats(result);
         setResultsVisible(true);
       } else {
-        console.error("Backend mengembalikan error:", result);
-        showMessage(`Error: ${result.error || response.statusText}`, "error");
+        showMessage(
+          `Analisis gagal: ${
+            result.error || response.statusText
+          }. Harap verifikasi format CSV Anda.`,
+          "error"
+        );
       }
     } catch (error) {
-      console.error("Fetch Error saat upload CSV:", error);
       showMessage(
-        "Terjadi kesalahan saat berkomunikasi dengan server. Pastikan server Flask berjalan dan CORS sudah diatur.",
+        "Kesalahan jaringan: Tidak dapat terhubung ke server analisis. Silakan periksa koneksi Anda atau coba lagi nanti.",
         "error"
       );
     } finally {
-      showLoading(false);
+      setLoading(false);
     }
   };
 
+  const clearDataAndReload = () => {
+    setShowConfirmModal(true);
+  };
+
+  const executeReset = () => {
+    setShowConfirmModal(false);
+    window.location.reload();
+  };
+
+  const toggleTheme = () => {
+    setCurrentTheme((prevTheme) => (prevTheme === "default" ? "dark-theme" : "default"));
+  };
+
   return (
-    <div className="container">
-      <div className="header">
-        <h1>🔍 Detektor Anomali IoT</h1>
-        <p>
-          Deteksi anomali canggih untuk data sensor IoT dengan visualisasi
-          interaktif
-        </p>
-      </div>
+    <div className={`app-container ${currentTheme}`}> {/* Tambahkan class tema di sini */}
+      <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
 
-      <div className="main-content">
-        {message && (
-          <div
-            className={`message-box ${messageType} ${message ? "show" : ""}`}
-          >
-            {message}
+      <div className="container">
+        <div className="header">
+          <div className="header-content">
+            <h1>
+              <span className="material-icons">data_object</span>
+              IoT Anomaly Insights
+            </h1>
+            <p>Deteksi anomali *real-time* untuk data sensor IoT penting.</p>
           </div>
-        )}
-
-        <div className="upload-section">
-          <div className="file-input-wrapper">
-            <input
-              type="file"
-              id="csvFile"
-              accept=".csv"
-              onChange={handleFileChange}
-            />
-            <div className="file-input-display">
-              <strong>
-                {fileDisplayContent.icon} {fileDisplayContent.name}
-              </strong>
-              <br />
-              <span style={{ color: fileDisplayContent.color }}>
-                {fileDisplayContent.details}
-              </span>
-            </div>
-          </div>
-          <button className="upload-btn" onClick={uploadCsv} disabled={loading}>
-            {loading ? "Menganalisis..." : "🚀 Analisis Data"}
-          </button>
         </div>
 
-        {loading && (
-          <div className={`loading-spinner ${loading ? "show" : ""}`}>
-            <div className="spinner"></div>
-            <p>Menganalisis data... Harap tunggu</p>
-          </div>
-        )}
+        <div className="main-content">
+          {message && (
+            <div
+              className={`message-box ${messageType}`}
+              style={{ display: message ? "block" : "none" }}
+            >
+              {message}
+            </div>
+          )}
 
-        {resultsVisible && processedData && (
-          <div className={`results-section ${resultsVisible ? "show" : ""}`}>
-            <div className="stats-grid">
-              <div className="stat-card">
-                <h3>{summaryStats.total_points.toLocaleString()}</h3>
-                <p>Total Poin Data</p>
+          <div className="card upload-section">
+            <h2 className="card-title">
+              <span className="material-icons">upload_file</span>
+              Masukkan Data
+            </h2>
+            <div className="file-input-wrapper">
+              <input
+                type="file"
+                id="csvFile"
+                accept=".csv"
+                onChange={handleFileChange}
+              />
+              <div className="file-input-display" id="fileDisplay">
+                <strong>
+                  {fileDisplayContent.icon} {fileDisplayContent.name}
+                </strong>
+                <br />
+                <span style={{ color: fileDisplayContent.color }}>
+                  {fileDisplayContent.details}
+                </span>
               </div>
-              <div className="stat-card anomaly">
-                <h3>{summaryStats.num_anomalies.toLocaleString()}</h3>
+            </div>
+            <div className="button-group">
+              <button
+                className="btn btn-primary"
+                onClick={uploadCsv}
+                disabled={loading}
+              >
+                <span className="material-icons">analytics</span>
+                Analisis Data
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={clearDataAndReload}
+                disabled={loading}
+              >
+                <span className="material-icons">refresh</span>
+                Bersihkan & Atur Ulang
+              </button>
+            </div>
+          </div>
+
+          <div
+            className="loading-spinner"
+            style={{ display: loading ? "block" : "none" }}
+          >
+            <div className="spinner"></div>
+            <p style={{ color: "var(--text-light)" }}>
+              Memproses data... Memulai pemindaian anomali.
+            </p>
+          </div>
+
+          <div
+            className="results-section"
+            style={{ display: resultsVisible ? "grid" : "none" }}
+          >
+            <div className="stats-grid">
+              <div className="stat-card primary">
+                <h3 id="totalPoints">
+                  {summaryStats.total_points.toLocaleString()}
+                </h3>
+                <p>Total Data Poin</p>
+              </div>
+              <div className="stat-card error">
+                <h3 id="numAnomalies">
+                  {summaryStats.num_anomalies.toLocaleString()}
+                </h3>
                 <p>Anomali Terdeteksi</p>
               </div>
-              <div className="stat-card normal">
-                <h3>{summaryStats.normal_points.toLocaleString()}</h3>
+              <div className="stat-card success">
+                <h3 id="normalPoints">
+                  {summaryStats.normal_points.toLocaleString()}
+                </h3>
                 <p>Poin Normal</p>
               </div>
               <div className="stat-card">
-                <h3>{summaryStats.anomaly_percentage}%</h3>
+                <h3 id="anomalyPercentage">
+                  {summaryStats.anomaly_percentage}%
+                </h3>
                 <p>Tingkat Anomali</p>
               </div>
             </div>
 
+            <div className="card">
+              <h2 className="card-title">
+                <span className="material-icons">timeline</span>
+                Analisis Tren *Real-time*
+              </h2>
+              <div className="controls">
+                <div className="control-group">
+                  <label htmlFor="chartType">Tipe Visualisasi</label>
+                  <select
+                    id="chartType"
+                    value={chartType}
+                    onChange={(e) => setChartType(e.target.value)}
+                  >
+                    <option value="line">Grafik Garis</option>
+                    <option value="scatter">Diagram Sebar</option>
+                    <option value="both">Tampilan Gabungan</option>
+                  </select>
+                </div>
+                <div className="control-group">
+                  <label htmlFor="dataRange">Jendela Data</label>
+                  <select
+                    id="dataRange"
+                    value={dataRange}
+                    onChange={(e) => setDataRange(e.target.value)}
+                  >
+                    <option value="all">Semua Data Tersedia</option>
+                    <option value="last100">100 Entri Terakhir</option>
+                    <option value="last50">50 Entri Terakhir</option>
+                    <option value="anomalies">Hanya Anomali</option>
+                  </select>
+                </div>
+              </div>
+              <div className="chart-container large">
+                <canvas id="mainChart" ref={mainChartRef}></canvas>
+              </div>
+            </div>
+
             <div className="charts-container">
-              <div className="chart-card">
-                <h3>📊 Analisis Deret Waktu</h3>
-                <div className="controls">
-                  <div className="control-group">
-                    <label htmlFor="chartType">Jenis Grafik:</label>
-                    <select
-                      id="chartType"
-                      value={chartType}
-                      onChange={(e) => setChartType(e.target.value)}
-                    >
-                      <option value="line">Grafik Garis</option>
-                      <option value="scatter">Plot Sebar</option>
-                      <option value="both">Tampilan Gabungan</option>
-                    </select>
-                  </div>
-                  <div className="control-group">
-                    <label htmlFor="dataRange">Rentang Data:</label>
-                    <select
-                      id="dataRange"
-                      value={dataRange}
-                      onChange={(e) => setDataRange(e.target.value)}
-                    >
-                      <option value="all">Semua Data</option>
-                      <option value="last100">100 Poin Terakhir</option>
-                      <option value="last50">50 Poin Terakhir</option>
-                      <option value="anomalies">Hanya Anomali</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="chart-container large">
-                  <canvas id="mainChart" ref={mainChartRef}></canvas>
-                </div>
-              </div>
-
-              <div className="chart-card">
-                <h3>📈 Analisis Distribusi</h3>
+              <div className="card">
+                <h2 className="card-title">
+                  <span className="material-icons">bar_chart</span>
+                  Metrik Distribusi Data
+                </h2>
                 <div className="chart-container">
-                  <canvas
-                    id="distributionChart"
-                    ref={distributionChartRef}
-                  ></canvas>
+                  <canvas id="distributionChart" ref={distributionChartRef}></canvas>
                 </div>
               </div>
 
-              <div className="chart-card">
-                <h3>⚡ Distribusi Skor Anomali</h3>
+              <div className="card">
+                <h2 className="card-title">
+                  <span className="material-icons">bubble_chart</span>
+                  Magnitudo Skor Anomali
+                </h2>
                 <div className="chart-container">
                   <canvas id="scoreChart" ref={scoreChartRef}></canvas>
                 </div>
               </div>
             </div>
-
-            <div className="anomaly-list">
-              <h4>🚨 Anomali Terdeteksi</h4>
-              <div id="anomaliesContainer"></div>
-            </div>
           </div>
-        )}
+        </div>
+
+        <div className="sidebar-content" style={{ display: resultsVisible ? "block" : "none" }}>
+          <div className="card anomaly-list" id="anomalyList">
+            <h2 className="card-title">
+              <span className="material-icons">warning</span>
+              Peringatan Anomali Kritis
+            </h2>
+            <div id="anomaliesContainer"></div>
+          </div>
+        </div>
       </div>
-    </div>
+
+      {/* Floating Action Button (Analyze Data) */}
+      <div className="fab" onClick={uploadCsv}>
+        <span className="material-icons">analytics</span>
+      </div>
+
+      {/* Custom Confirmation Modal */}
+      <div id="confirmModal" className={`modal-overlay ${showConfirmModal ? "show" : ""}`}>
+        <div className="modal-content">
+          <h3 className="modal-title">
+            <span className="material-icons">help_outline</span> Konfirmasi Reset
+          </h3>
+          <p>Apakah Anda yakin ingin menghapus semua data yang dimuat dan mengatur ulang aplikasi?</p>
+          <div className="modal-actions">
+            <button className="btn btn-secondary" onClick={() => setShowConfirmModal(false)}>Batal</button>
+            <button className="btn btn-danger" onClick={executeReset}>Reset</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Tombol Ganti Tema */}
+      <div className="fab theme-toggle" onClick={toggleTheme} style={{ bottom: '90px' }}>
+        <span className="material-icons">palette</span>
+      </div>
+    </>
   );
 }
+
 export default App;
