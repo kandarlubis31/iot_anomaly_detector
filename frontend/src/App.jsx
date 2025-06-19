@@ -4,6 +4,7 @@ import { Chart as ChartJS, registerables } from "chart.js";
 import "chartjs-adapter-date-fns";
 import "./App.css";
 
+// Daftarkan semua registerables dari Chart.js
 ChartJS.register(...registerables);
 
 function App() {
@@ -19,8 +20,8 @@ function App() {
     normal_points: 0,
     anomaly_percentage: 0,
   });
-  const [rawData, setRawData] = useState(null);
-  const [processedData, setProcessedData] = useState(null);
+  const [rawData, setRawData] = useState(null); // Data mentah dari API
+  const [processedData, setProcessedData] = useState(null); // Data yang sudah difilter untuk chart
 
   const [chartType, setChartType] = useState("line");
   const [dataRange, setDataRange] = useState("all");
@@ -38,18 +39,19 @@ function App() {
   const mainChartRef = useRef(null);
   const distributionChartRef = useRef(null);
   const scoreChartRef = useRef(null);
-  const csvFileInputRef = useRef(null); // Ref baru untuk input file
+  const csvFileInputRef = useRef(null); // Ref untuk input file
 
   const API_BASE_URL =
     process.env.VITE_API_URL || "https://iotanomalydetector-production.up.railway.app";
 
+  // Efek samping saat komponen di-mount atau rawData berubah
   useEffect(() => {
     // Sembunyikan bagian hasil di awal jika belum ada data
     if (!rawData) {
       setResultsVisible(false);
     }
     setLoading(false);
-  }, [rawData]); // Ditambahkan rawData sebagai dependency
+  }, [rawData]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -75,7 +77,7 @@ function App() {
   const showMessage = (msg, type = "info") => {
     setMessage(msg);
     setMessageType(type);
-    // Hapus timeout jika ini menyebabkan masalah tampilan pesan
+    // Timeout untuk menyembunyikan pesan, bisa disesuaikan
     setTimeout(() => {
       setMessage("");
     }, 5000);
@@ -171,13 +173,18 @@ function App() {
   const createMainChart = useCallback(
     (data) => {
       const canvas = mainChartRef.current;
-      if (!canvas) return;
+      if (!canvas) {
+        console.warn("Main Chart Canvas ref is not available.");
+        return;
+      }
 
+      // Hancurkan chart sebelumnya jika ada
       if (canvas.chart) {
         canvas.chart.destroy();
       }
 
       if (!data || !data.timestamps || data.timestamps.length === 0) {
+        console.warn("No data provided for main chart.");
         return;
       }
 
@@ -384,12 +391,16 @@ function App() {
   const createDistributionChart = useCallback(
     (data) => {
       const canvas = distributionChartRef.current;
-      if (!canvas) return;
+      if (!canvas) {
+        console.warn("Distribution Chart Canvas ref is not available.");
+        return;
+      }
       if (canvas.chart) {
         canvas.chart.destroy();
       }
 
       if (!data || !data.temperatures || data.temperatures.length === 0) {
+        console.warn("No data provided for distribution chart.");
         return;
       }
 
@@ -465,12 +476,16 @@ function App() {
   const createScoreChart = useCallback(
     (data) => {
       const canvas = scoreChartRef.current;
-      if (!canvas) return;
+      if (!canvas) {
+        console.warn("Score Chart Canvas ref is not available.");
+        return;
+      }
       if (canvas.chart) {
         canvas.chart.destroy();
       }
 
       if (!data || !data.anomaly_scores || data.anomaly_scores.length === 0) {
+        console.warn("No data provided for score chart.");
         return;
       }
 
@@ -547,7 +562,10 @@ function App() {
 
   const createAnomalyList = useCallback((data) => {
     const container = document.getElementById("anomaliesContainer");
-    if (!container) return;
+    if (!container) {
+      console.warn("Anomaly list container not found.");
+      return;
+    }
     container.innerHTML = "";
 
     if (!data || !data.timestamps || data.timestamps.length === 0) {
@@ -561,7 +579,7 @@ function App() {
         anomalies.push({
           timestamp: new Date(data.timestamps[i]),
           temperature: data.temperatures[i],
-          power_consumption: data.power_consumptions[i],
+          power: data.power_consumptions[i],
           score: data.anomaly_scores[i],
         });
       }
@@ -585,7 +603,7 @@ function App() {
           <strong>${anomaly.timestamp.toLocaleString()}</strong><br>
           <small>Suhu: ${anomaly.temperature.toFixed(
             2
-          )}°C, Daya: ${anomaly.power_consumption.toFixed(2)}W</small>
+          )}°C, Daya: ${anomaly.power.toFixed(2)}W</small>
         </div>
         <span class="anomaly-score">Skor: ${anomaly.score.toFixed(3)}</span>
       `;
@@ -601,6 +619,7 @@ function App() {
     }
   }, []);
 
+  // Efek samping untuk memfilter data saat rawData atau dataRange berubah
   useEffect(() => {
     if (rawData) {
       const filteredData = filterDataByRange(rawData, dataRange);
@@ -610,6 +629,7 @@ function App() {
     }
   }, [rawData, dataRange, filterDataByRange]);
 
+  // Efek samping untuk merender ulang CHART UTAMA saja saat processedData atau chartType berubah
   useEffect(() => {
     if (
       processedData &&
@@ -617,28 +637,39 @@ function App() {
       processedData.timestamps.length > 0
     ) {
       createMainChart(processedData);
+    } else {
+      // Hancurkan chart jika data tidak ada
+      if (mainChartRef.current && mainChartRef.current.chart) {
+        mainChartRef.current.chart.destroy();
+      }
+    }
+  }, [processedData, chartType, createMainChart]);
+
+  // Efek samping untuk merender ulang CHART DISTRIBUSI & SKOR + Anomaly List
+  // Ini hanya bergantung pada processedData, bukan chartType
+  useEffect(() => {
+    if (
+      processedData &&
+      processedData.timestamps &&
+      processedData.timestamps.length > 0
+    ) {
       createDistributionChart(processedData);
       createScoreChart(processedData);
       createAnomalyList(processedData);
     } else {
-      if (mainChartRef.current && mainChartRef.current.chart)
-        mainChartRef.current.chart.destroy();
-      if (distributionChartRef.current && distributionChartRef.current.chart)
+      // Hancurkan chart dan bersihkan list jika data tidak ada
+      if (distributionChartRef.current && distributionChartRef.current.chart) {
         distributionChartRef.current.chart.destroy();
-      if (scoreChartRef.current && scoreChartRef.current.chart)
+      }
+      if (scoreChartRef.current && scoreChartRef.current.chart) {
         scoreChartRef.current.chart.destroy();
+      }
       const container = document.getElementById("anomaliesContainer");
-      if (container)
+      if (container) {
         container.innerHTML = `<p style='color: var(--text-muted); text-align: center; padding: 16px;'>Tidak ada anomali kritis terdeteksi dalam kumpulan data ini.</p>`;
+      }
     }
-  }, [
-    processedData,
-    chartType,
-    createMainChart,
-    createDistributionChart,
-    createScoreChart,
-    createAnomalyList,
-  ]);
+  }, [processedData, createDistributionChart, createScoreChart, createAnomalyList]);
 
   // Fungsi untuk memicu klik pada input file tersembunyi
   const handleFileDisplayClick = () => {
@@ -646,7 +677,7 @@ function App() {
   };
 
   const uploadCsv = async () => {
-    setMessage("");
+    setMessage(""); // Bersihkan pesan sebelumnya
     if (!fileSelected) {
       showMessage("Silakan pilih file CSV terlebih dahulu untuk memulai analisis.", "error");
       return;
@@ -656,7 +687,7 @@ function App() {
     formData.append("csv_file", fileSelected);
 
     setLoading(true);
-    setResultsVisible(false);
+    setResultsVisible(false); // Sembunyikan hasil sebelum upload baru
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/upload_csv`, {
@@ -668,9 +699,9 @@ function App() {
 
       if (response.ok) {
         showMessage("Deteksi anomali berhasil diselesaikan!", "success");
-        setRawData(result.chart_data);
+        setRawData(result.chart_data); // Simpan data mentah
         updateSummaryStats(result);
-        setResultsVisible(true);
+        setResultsVisible(true); // Tampilkan bagian hasil setelah data berhasil di-load
       } else {
         console.error("Backend mengembalikan error:", result);
         showMessage(
@@ -679,6 +710,7 @@ function App() {
           }. Harap verifikasi format CSV Anda.`,
           "error"
         );
+        setResultsVisible(false); // Pastikan hasil tidak terlihat jika error
       }
     } catch (error) {
       console.error("Fetch Error saat upload CSV:", error);
@@ -686,6 +718,7 @@ function App() {
         "Kesalahan jaringan: Tidak dapat terhubung ke server analisis. Silakan periksa koneksi Anda atau coba lagi nanti.",
         "error"
       );
+      setResultsVisible(false); // Pastikan hasil tidak terlihat jika error jaringan
     } finally {
       setLoading(false);
     }
@@ -697,7 +730,26 @@ function App() {
 
   const executeReset = () => {
     setShowConfirmModal(false);
-    window.location.reload();
+    // Kosongkan semua state data dan reload halaman
+    setFileSelected(null);
+    setRawData(null);
+    setProcessedData(null);
+    setResultsVisible(false);
+    setSummaryStats({
+      total_points: 0,
+      num_anomalies: 0,
+      normal_points: 0,
+      anomaly_percentage: 0,
+    });
+    setFileDisplayContent({
+      icon: "📁",
+      name: "Pilih File CSV",
+      details: "Klik untuk memuat data sensor IoT Anda (.csv)",
+      color: "var(--text-muted)",
+    });
+    setMessage(""); // Kosongkan pesan
+    // Alternatif untuk reload penuh: window.location.reload();
+    // Tapi untuk pengalaman yang lebih mulus, kita reset state saja
   };
 
   const toggleTheme = () => {
@@ -718,15 +770,16 @@ function App() {
         </div>
 
         <div className="main-content">
+          {/* Message Box */}
           {message && (
             <div
               className={`message-box ${messageType}`}
-              style={{ display: message ? "block" : "none" }}
             >
               {message}
             </div>
           )}
 
+          {/* Upload Section */}
           <div className="card upload-section">
             <h2 className="card-title">
               <span className="material-icons">upload_file</span>
@@ -738,10 +791,10 @@ function App() {
                 id="csvFile"
                 accept=".csv"
                 onChange={handleFileChange}
-                ref={csvFileInputRef} 
-                style={{ display: 'none' }} // Sembunyikan input file agar hanya div display yang terlihat
+                ref={csvFileInputRef}
+                style={{ display: 'none' }} // Sembunyikan input file
               />
-              <div className="file-input-display" onClick={handleFileDisplayClick}> {/* Tambahkan onClick */}
+              <div className="file-input-display" onClick={handleFileDisplayClick}>
                 <strong>
                   {fileDisplayContent.icon} {fileDisplayContent.name}
                 </strong>
@@ -771,6 +824,7 @@ function App() {
             </div>
           </div>
 
+          {/* Loading Spinner */}
           {loading && (
             <div className="loading-spinner">
               <div className="spinner"></div>
@@ -780,8 +834,9 @@ function App() {
             </div>
           )}
 
-          {resultsVisible && processedData && (
-            <div className="results-section">
+          {/* Results Section (Statistik, Grafik, dll.) */}
+          {resultsVisible && (
+            <div className="results-section show"> {/* Tambahkan class 'show' secara eksplisit di sini */}
               <div className="stats-grid">
                 <div className="stat-card primary">
                   <h3 id="totalPoints">
@@ -871,6 +926,7 @@ function App() {
           )}
         </div>
 
+        {/* Sidebar Content */}
         {resultsVisible && (
           <div className="sidebar-content">
             <div className="card anomaly-list" id="anomalyList">
@@ -884,7 +940,7 @@ function App() {
         )}
       </div>
 
-      {/* Floating Action Button (Analyze Data) - Muncul hanya jika tidak loading dan tidak ada modal */}
+      {/* Floating Action Button (Analyze Data) */}
       {!loading && !showConfirmModal && (
         <div className="fab" onClick={uploadCsv}>
           <span className="material-icons">analytics</span>
@@ -905,7 +961,7 @@ function App() {
         </div>
       </div>
 
-      {/* Tombol Ganti Tema - Muncul hanya jika tidak loading dan tidak ada modal */}
+      {/* Tombol Ganti Tema */}
       {!loading && !showConfirmModal && (
         <div className="fab theme-toggle" onClick={toggleTheme} style={{ bottom: '90px' }}>
           <span className="material-icons">palette</span>
