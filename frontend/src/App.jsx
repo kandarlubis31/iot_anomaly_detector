@@ -1,8 +1,8 @@
+// frontend/src/App.js
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Chart as ChartJS, registerables } from "chart.js";
 import "chartjs-adapter-date-fns";
-import "./App.css"; // Ini CSS dari tema baru
-import "./AppOriginal.css"; // Kalau ada CSS sebelumnya, bisa tetap diimport atau dihapus jika tidak diperlukan
+import "./App.css"; // Hanya perlu import App.css yang baru
 
 ChartJS.register(...registerables);
 
@@ -11,6 +11,7 @@ function App() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
   const [loading, setLoading] = useState(false);
+
   const [resultsVisible, setResultsVisible] = useState(false);
   const [summaryStats, setSummaryStats] = useState({
     total_points: 0,
@@ -20,16 +21,20 @@ function App() {
   });
   const [rawData, setRawData] = useState(null);
   const [processedData, setProcessedData] = useState(null);
+
   const [chartType, setChartType] = useState("line");
   const [dataRange, setDataRange] = useState("all");
+
   const [fileDisplayContent, setFileDisplayContent] = useState({
     icon: "📁",
     name: "Pilih File CSV",
     details: "Klik untuk memuat data sensor IoT Anda (.csv)",
-    color: "var(--text-muted)",
+    // Gunakan warna yang netral dulu, atau yang sesuai dengan tema terang default
+    color: "var(--text-muted)", // Ini akan mengikuti tema aktif
   });
+
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState("default"); // State untuk mengelola tema
+  const [currentTheme, setCurrentTheme] = useState("default"); // 'default' untuk terang, 'dark-theme' untuk gelap
 
   const mainChartRef = useRef(null);
   const distributionChartRef = useRef(null);
@@ -52,14 +57,14 @@ function App() {
         icon: "📄",
         name: file.name,
         details: `File dipilih (${(file.size / 1024).toFixed(1)} KB)`,
-        color: "var(--secondary-data)",
+        color: "var(--color-secondary)", // Menggunakan variabel tema
       });
     } else {
       setFileDisplayContent({
         icon: "📁",
         name: "Pilih File CSV",
         details: "Klik untuk memuat data sensor IoT Anda (.csv)",
-        color: "var(--text-muted)",
+        color: "var(--text-muted)", // Menggunakan variabel tema
       });
     }
   };
@@ -199,7 +204,7 @@ function App() {
         datasets.push({
           label: "Suhu (Normal)",
           data: normalDataPoints.map((d) => ({ x: d.x, y: d.y })),
-          borderColor: "var(--primary-data)",
+          borderColor: "var(--color-primary)", // Menggunakan variabel tema
           backgroundColor: "rgba(0, 123, 255, 0.1)",
           borderWidth: 2,
           fill: false,
@@ -212,7 +217,7 @@ function App() {
         datasets.push({
           label: "Daya (Normal)",
           data: normalDataPoints.map((d) => ({ x: d.x, y: d.y2 })),
-          borderColor: "var(--secondary-data)",
+          borderColor: "var(--color-secondary)", // Menggunakan variabel tema
           backgroundColor: "rgba(40, 167, 69, 0.1)",
           borderWidth: 2,
           fill: false,
@@ -232,7 +237,7 @@ function App() {
             y: d.y,
             score: d.score,
           })),
-          borderColor: "var(--error-data)",
+          borderColor: "var(--color-danger)", // Menggunakan variabel tema
           backgroundColor: "rgba(220, 53, 69, 0.6)",
           borderWidth: 2,
           pointRadius: 8,
@@ -250,7 +255,7 @@ function App() {
             y: d.y2,
             score: d.score,
           })),
-          borderColor: "var(--warning-data)",
+          borderColor: "var(--color-warning)", // Menggunakan variabel tema
           backgroundColor: "rgba(255, 193, 7, 0.6)",
           borderWidth: 2,
           pointRadius: 8,
@@ -277,7 +282,7 @@ function App() {
             legend: {
               position: "top",
               labels: {
-                color: "var(--text-light)",
+                color: "var(--text-main)", // Menggunakan variabel tema
                 font: { size: 14 },
               },
             },
@@ -306,8 +311,8 @@ function App() {
                 },
               },
               backgroundColor: "rgba(0,0,0,0.7)",
-              titleColor: "var(--text-light)",
-              bodyColor: "var(--text-light)",
+              titleColor: "var(--text-contrast)", // Menggunakan variabel tema
+              bodyColor: "var(--text-contrast)", // Menggunakan variabel tema
             },
           },
           scales: {
@@ -322,14 +327,14 @@ function App() {
               title: {
                 display: true,
                 text: "Timestamp",
-                color: "var(--text-light)",
+                color: "var(--text-main)", // Menggunakan variabel tema
                 font: { size: 16, weight: "bold" },
               },
               ticks: {
-                color: "var(--text-muted)",
+                color: "var(--text-muted)", // Menggunakan variabel tema
               },
               grid: {
-                color: "rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.08)", // Warna grid disesuaikan
               },
             },
             y: {
@@ -339,14 +344,14 @@ function App() {
               title: {
                 display: true,
                 text: "Suhu (°C)",
-                color: "var(--text-light)",
+                color: "var(--text-main)", // Menggunakan variabel tema
                 font: { size: 16, weight: "bold" },
               },
               ticks: {
-                color: "var(--text-muted)",
+                color: "var(--text-muted)", // Menggunakan variabel tema
               },
               grid: {
-                color: "rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.08)", // Warna grid disesuaikan
               },
             },
             y1: {
@@ -355,16 +360,16 @@ function App() {
               position: "right",
               grid: {
                 drawOnChartArea: false,
-                color: "rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.08)", // Warna grid disesuaikan
               },
               title: {
                 display: true,
                 text: "Konsumsi Daya (W)",
-                color: "var(--text-light)",
+                color: "var(--text-main)", // Menggunakan variabel tema
                 font: { size: 16, weight: "bold" },
               },
               ticks: {
-                color: "var(--text-muted)",
+                color: "var(--text-muted)", // Menggunakan variabel tema
               },
             },
           },
@@ -411,13 +416,13 @@ function App() {
             legend: {
               display: true,
               labels: {
-                color: "var(--text-light)",
+                color: "var(--text-main)", // Menggunakan variabel tema
               },
             },
             tooltip: {
               backgroundColor: "rgba(0,0,0,0.7)",
-              titleColor: "var(--text-light)",
-              bodyColor: "var(--text-light)",
+              titleColor: "var(--text-contrast)",
+              bodyColor: "var(--text-contrast)",
             },
           },
           scales: {
@@ -425,10 +430,10 @@ function App() {
               title: {
                 display: true,
                 text: "Rentang Nilai",
-                color: "var(--text-light)",
+                color: "var(--text-main)", // Menggunakan variabel tema
               },
               ticks: {
-                color: "var(--text-muted)",
+                color: "var(--text-muted)", // Menggunakan variabel tema
               },
               grid: {
                 color: "rgba(255,255,255,0.08)",
@@ -438,11 +443,11 @@ function App() {
               title: {
                 display: true,
                 text: "Frekuensi",
-                color: "var(--text-light)",
+                color: "var(--text-main)", // Menggunakan variabel tema
               },
               beginAtZero: true,
               ticks: {
-                color: "var(--text-muted)",
+                color: "var(--text-muted)", // Menggunakan variabel tema
               },
               grid: {
                 color: "rgba(255,255,255,0.08)",
@@ -494,13 +499,13 @@ function App() {
             legend: {
               display: true,
               labels: {
-                color: "var(--text-light)",
+                color: "var(--text-main)", // Menggunakan variabel tema
               },
             },
             tooltip: {
               backgroundColor: "rgba(0,0,0,0.7)",
-              titleColor: "var(--text-light)",
-              bodyColor: "var(--text-light)",
+              titleColor: "var(--text-contrast)",
+              bodyColor: "var(--text-contrast)",
             },
           },
           scales: {
@@ -508,10 +513,10 @@ function App() {
               title: {
                 display: true,
                 text: "Rentang Skor Anomali",
-                color: "var(--text-light)",
+                color: "var(--text-main)", // Menggunakan variabel tema
               },
               ticks: {
-                color: "var(--text-muted)",
+                color: "var(--text-muted)", // Menggunakan variabel tema
               },
               grid: {
                 color: "rgba(255,255,255,0.08)",
@@ -521,11 +526,11 @@ function App() {
               title: {
                 display: true,
                 text: "Frekuensi Anomali",
-                color: "var(--text-light)",
+                color: "var(--text-main)", // Menggunakan variabel tema
               },
               beginAtZero: true,
               ticks: {
-                color: "var(--text-muted)",
+                color: "var(--text-muted)", // Menggunakan variabel tema
               },
               grid: {
                 color: "rgba(255,255,255,0.08)",
@@ -660,6 +665,7 @@ function App() {
         updateSummaryStats(result);
         setResultsVisible(true);
       } else {
+        console.error("Backend mengembalikan error:", result);
         showMessage(
           `Analisis gagal: ${
             result.error || response.statusText
@@ -668,6 +674,7 @@ function App() {
         );
       }
     } catch (error) {
+      console.error("Fetch Error saat upload CSV:", error);
       showMessage(
         "Kesalahan jaringan: Tidak dapat terhubung ke server analisis. Silakan periksa koneksi Anda atau coba lagi nanti.",
         "error"
@@ -691,12 +698,9 @@ function App() {
   };
 
   return (
-    // Bungkus semua konten di dalam satu div parent tunggal
-    // Class 'app-container' yang sudah kita buat sebelumnya bisa jadi parent ini.
-    <div className={`app-container ${currentTheme}`}> 
-      {/* Link Material Icons dan Google Fonts tetap di sini */}
-      <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-      <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+    <div className={`app-container ${currentTheme}`}>
+      {/* Hapus link Material Icons dan Google Fonts dari sini */}
+      {/* Mereka sudah dipindahkan ke public/index.html */}
 
       <div className="container">
         <div className="header">
@@ -766,7 +770,7 @@ function App() {
             style={{ display: loading ? "block" : "none" }}
           >
             <div className="spinner"></div>
-            <p style={{ color: "var(--text-light)" }}>
+            <p style={{ color: "var(--text-main)" }}> {/* Gunakan text-main */}
               Memproses data... Memulai pemindaian anomali.
             </p>
           </div>
@@ -897,7 +901,7 @@ function App() {
       <div className="fab theme-toggle" onClick={toggleTheme} style={{ bottom: '90px' }}>
         <span className="material-icons">palette</span>
       </div>
-    </div> 
+    </div>
   );
 }
 
