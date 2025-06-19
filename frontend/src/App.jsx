@@ -738,7 +738,7 @@ function App() {
                 id="csvFile"
                 accept=".csv"
                 onChange={handleFileChange}
-                ref={csvFileInputRef} {/* Hubungkan ref ke input file */}
+                ref={csvFileInputRef} 
                 style={{ display: 'none' }} // Sembunyikan input file agar hanya div display yang terlihat
               />
               <div className="file-input-display" onClick={handleFileDisplayClick}> {/* Tambahkan onClick */}
