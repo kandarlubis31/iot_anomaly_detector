@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Chart as ChartJS, registerables } from "chart.js";
 import "chartjs-adapter-date-fns";
-import "./App.css"; // Hanya perlu import App.css yang baru
+import "./App.css";
 
 ChartJS.register(...registerables);
 
@@ -29,8 +29,7 @@ function App() {
     icon: "📁",
     name: "Pilih File CSV",
     details: "Klik untuk memuat data sensor IoT Anda (.csv)",
-    // Gunakan warna yang netral dulu, atau yang sesuai dengan tema terang default
-    color: "var(--text-muted)", // Ini akan mengikuti tema aktif
+    color: "var(--text-muted)",
   });
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -39,14 +38,18 @@ function App() {
   const mainChartRef = useRef(null);
   const distributionChartRef = useRef(null);
   const scoreChartRef = useRef(null);
+  const csvFileInputRef = useRef(null); // Ref baru untuk input file
 
   const API_BASE_URL =
     process.env.VITE_API_URL || "https://iotanomalydetector-production.up.railway.app";
 
   useEffect(() => {
-    setResultsVisible(false);
+    // Sembunyikan bagian hasil di awal jika belum ada data
+    if (!rawData) {
+      setResultsVisible(false);
+    }
     setLoading(false);
-  }, []);
+  }, [rawData]); // Ditambahkan rawData sebagai dependency
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -57,14 +60,14 @@ function App() {
         icon: "📄",
         name: file.name,
         details: `File dipilih (${(file.size / 1024).toFixed(1)} KB)`,
-        color: "var(--color-secondary)", // Menggunakan variabel tema
+        color: "var(--color-secondary)",
       });
     } else {
       setFileDisplayContent({
         icon: "📁",
         name: "Pilih File CSV",
         details: "Klik untuk memuat data sensor IoT Anda (.csv)",
-        color: "var(--text-muted)", // Menggunakan variabel tema
+        color: "var(--text-muted)",
       });
     }
   };
@@ -72,11 +75,10 @@ function App() {
   const showMessage = (msg, type = "info") => {
     setMessage(msg);
     setMessageType(type);
-    if (type === "success" || type === "error") {
-      setTimeout(() => {
-        setMessage("");
-      }, 5000);
-    }
+    // Hapus timeout jika ini menyebabkan masalah tampilan pesan
+    setTimeout(() => {
+      setMessage("");
+    }, 5000);
   };
 
   const updateSummaryStats = (result) => {
@@ -204,7 +206,7 @@ function App() {
         datasets.push({
           label: "Suhu (Normal)",
           data: normalDataPoints.map((d) => ({ x: d.x, y: d.y })),
-          borderColor: "var(--color-primary)", // Menggunakan variabel tema
+          borderColor: "var(--color-primary)",
           backgroundColor: "rgba(0, 123, 255, 0.1)",
           borderWidth: 2,
           fill: false,
@@ -217,7 +219,7 @@ function App() {
         datasets.push({
           label: "Daya (Normal)",
           data: normalDataPoints.map((d) => ({ x: d.x, y: d.y2 })),
-          borderColor: "var(--color-secondary)", // Menggunakan variabel tema
+          borderColor: "var(--color-secondary)",
           backgroundColor: "rgba(40, 167, 69, 0.1)",
           borderWidth: 2,
           fill: false,
@@ -237,7 +239,7 @@ function App() {
             y: d.y,
             score: d.score,
           })),
-          borderColor: "var(--color-danger)", // Menggunakan variabel tema
+          borderColor: "var(--color-danger)",
           backgroundColor: "rgba(220, 53, 69, 0.6)",
           borderWidth: 2,
           pointRadius: 8,
@@ -255,7 +257,7 @@ function App() {
             y: d.y2,
             score: d.score,
           })),
-          borderColor: "var(--color-warning)", // Menggunakan variabel tema
+          borderColor: "var(--color-warning)",
           backgroundColor: "rgba(255, 193, 7, 0.6)",
           borderWidth: 2,
           pointRadius: 8,
@@ -282,7 +284,7 @@ function App() {
             legend: {
               position: "top",
               labels: {
-                color: "var(--text-main)", // Menggunakan variabel tema
+                color: "var(--text-main)",
                 font: { size: 14 },
               },
             },
@@ -311,8 +313,8 @@ function App() {
                 },
               },
               backgroundColor: "rgba(0,0,0,0.7)",
-              titleColor: "var(--text-contrast)", // Menggunakan variabel tema
-              bodyColor: "var(--text-contrast)", // Menggunakan variabel tema
+              titleColor: "var(--text-contrast)",
+              bodyColor: "var(--text-contrast)",
             },
           },
           scales: {
@@ -327,14 +329,14 @@ function App() {
               title: {
                 display: true,
                 text: "Timestamp",
-                color: "var(--text-main)", // Menggunakan variabel tema
+                color: "var(--text-main)",
                 font: { size: 16, weight: "bold" },
               },
               ticks: {
-                color: "var(--text-muted)", // Menggunakan variabel tema
+                color: "var(--text-muted)",
               },
               grid: {
-                color: "rgba(255,255,255,0.08)", // Warna grid disesuaikan
+                color: "rgba(255,255,255,0.08)",
               },
             },
             y: {
@@ -344,14 +346,14 @@ function App() {
               title: {
                 display: true,
                 text: "Suhu (°C)",
-                color: "var(--text-main)", // Menggunakan variabel tema
+                color: "var(--text-main)",
                 font: { size: 16, weight: "bold" },
               },
               ticks: {
-                color: "var(--text-muted)", // Menggunakan variabel tema
+                color: "var(--text-muted)",
               },
               grid: {
-                color: "rgba(255,255,255,0.08)", // Warna grid disesuaikan
+                color: "rgba(255,255,255,0.08)",
               },
             },
             y1: {
@@ -360,16 +362,16 @@ function App() {
               position: "right",
               grid: {
                 drawOnChartArea: false,
-                color: "rgba(255,255,255,0.08)", // Warna grid disesuaikan
+                color: "rgba(255,255,255,0.08)",
               },
               title: {
                 display: true,
                 text: "Konsumsi Daya (W)",
-                color: "var(--text-main)", // Menggunakan variabel tema
+                color: "var(--text-main)",
                 font: { size: 16, weight: "bold" },
               },
               ticks: {
-                color: "var(--text-muted)", // Menggunakan variabel tema
+                color: "var(--text-muted)",
               },
             },
           },
@@ -416,7 +418,7 @@ function App() {
             legend: {
               display: true,
               labels: {
-                color: "var(--text-main)", // Menggunakan variabel tema
+                color: "var(--text-main)",
               },
             },
             tooltip: {
@@ -430,10 +432,10 @@ function App() {
               title: {
                 display: true,
                 text: "Rentang Nilai",
-                color: "var(--text-main)", // Menggunakan variabel tema
+                color: "var(--text-main)",
               },
               ticks: {
-                color: "var(--text-muted)", // Menggunakan variabel tema
+                color: "var(--text-muted)",
               },
               grid: {
                 color: "rgba(255,255,255,0.08)",
@@ -443,11 +445,11 @@ function App() {
               title: {
                 display: true,
                 text: "Frekuensi",
-                color: "var(--text-main)", // Menggunakan variabel tema
+                color: "var(--text-main)",
               },
               beginAtZero: true,
               ticks: {
-                color: "var(--text-muted)", // Menggunakan variabel tema
+                color: "var(--text-muted)",
               },
               grid: {
                 color: "rgba(255,255,255,0.08)",
@@ -499,7 +501,7 @@ function App() {
             legend: {
               display: true,
               labels: {
-                color: "var(--text-main)", // Menggunakan variabel tema
+                color: "var(--text-main)",
               },
             },
             tooltip: {
@@ -513,10 +515,10 @@ function App() {
               title: {
                 display: true,
                 text: "Rentang Skor Anomali",
-                color: "var(--text-main)", // Menggunakan variabel tema
+                color: "var(--text-main)",
               },
               ticks: {
-                color: "var(--text-muted)", // Menggunakan variabel tema
+                color: "var(--text-muted)",
               },
               grid: {
                 color: "rgba(255,255,255,0.08)",
@@ -526,11 +528,11 @@ function App() {
               title: {
                 display: true,
                 text: "Frekuensi Anomali",
-                color: "var(--text-main)", // Menggunakan variabel tema
+                color: "var(--text-main)",
               },
               beginAtZero: true,
               ticks: {
-                color: "var(--text-muted)", // Menggunakan variabel tema
+                color: "var(--text-muted)",
               },
               grid: {
                 color: "rgba(255,255,255,0.08)",
@@ -638,6 +640,11 @@ function App() {
     createAnomalyList,
   ]);
 
+  // Fungsi untuk memicu klik pada input file tersembunyi
+  const handleFileDisplayClick = () => {
+    csvFileInputRef.current.click();
+  };
+
   const uploadCsv = async () => {
     setMessage("");
     if (!fileSelected) {
@@ -699,9 +706,6 @@ function App() {
 
   return (
     <div className={`app-container ${currentTheme}`}>
-      {/* Hapus link Material Icons dan Google Fonts dari sini */}
-      {/* Mereka sudah dipindahkan ke public/index.html */}
-
       <div className="container">
         <div className="header">
           <div className="header-content">
@@ -734,8 +738,10 @@ function App() {
                 id="csvFile"
                 accept=".csv"
                 onChange={handleFileChange}
+                ref={csvFileInputRef} {/* Hubungkan ref ke input file */}
+                style={{ display: 'none' }} // Sembunyikan input file agar hanya div display yang terlihat
               />
-              <div className="file-input-display" id="fileDisplay">
+              <div className="file-input-display" onClick={handleFileDisplayClick}> {/* Tambahkan onClick */}
                 <strong>
                   {fileDisplayContent.icon} {fileDisplayContent.name}
                 </strong>
@@ -765,123 +771,125 @@ function App() {
             </div>
           </div>
 
-          <div
-            className="loading-spinner"
-            style={{ display: loading ? "block" : "none" }}
-          >
-            <div className="spinner"></div>
-            <p style={{ color: "var(--text-main)" }}> {/* Gunakan text-main */}
-              Memproses data... Memulai pemindaian anomali.
-            </p>
-          </div>
+          {loading && (
+            <div className="loading-spinner">
+              <div className="spinner"></div>
+              <p style={{ color: "var(--text-main)" }}>
+                Memproses data... Memulai pemindaian anomali.
+              </p>
+            </div>
+          )}
 
-          <div
-            className="results-section"
-            style={{ display: resultsVisible ? "grid" : "none" }}
-          >
-            <div className="stats-grid">
-              <div className="stat-card primary">
-                <h3 id="totalPoints">
-                  {summaryStats.total_points.toLocaleString()}
-                </h3>
-                <p>Total Data Poin</p>
+          {resultsVisible && processedData && (
+            <div className="results-section">
+              <div className="stats-grid">
+                <div className="stat-card primary">
+                  <h3 id="totalPoints">
+                    {summaryStats.total_points.toLocaleString()}
+                  </h3>
+                  <p>Total Data Poin</p>
+                </div>
+                <div className="stat-card error">
+                  <h3 id="numAnomalies">
+                    {summaryStats.num_anomalies.toLocaleString()}
+                  </h3>
+                  <p>Anomali Terdeteksi</p>
+                </div>
+                <div className="stat-card success">
+                  <h3 id="normalPoints">
+                    {summaryStats.normal_points.toLocaleString()}
+                  </h3>
+                  <p>Poin Normal</p>
+                </div>
+                <div className="stat-card">
+                  <h3 id="anomalyPercentage">
+                    {summaryStats.anomaly_percentage}%
+                  </h3>
+                  <p>Tingkat Anomali</p>
+                </div>
               </div>
-              <div className="stat-card error">
-                <h3 id="numAnomalies">
-                  {summaryStats.num_anomalies.toLocaleString()}
-                </h3>
-                <p>Anomali Terdeteksi</p>
+
+              <div className="card">
+                <h2 className="card-title">
+                  <span className="material-icons">timeline</span>
+                  Analisis Tren *Real-time*
+                </h2>
+                <div className="controls">
+                  <div className="control-group">
+                    <label htmlFor="chartType">Tipe Visualisasi</label>
+                    <select
+                      id="chartType"
+                      value={chartType}
+                      onChange={(e) => setChartType(e.target.value)}
+                    >
+                      <option value="line">Grafik Garis</option>
+                      <option value="scatter">Diagram Sebar</option>
+                      <option value="both">Tampilan Gabungan</option>
+                    </select>
+                  </div>
+                  <div className="control-group">
+                    <label htmlFor="dataRange">Jendela Data</label>
+                    <select
+                      id="dataRange"
+                      value={dataRange}
+                      onChange={(e) => setDataRange(e.target.value)}
+                    >
+                      <option value="all">Semua Data Tersedia</option>
+                      <option value="last100">100 Entri Terakhir</option>
+                      <option value="last50">50 Entri Terakhir</option>
+                      <option value="anomalies">Hanya Anomali</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="chart-container large">
+                  <canvas id="mainChart" ref={mainChartRef}></canvas>
+                </div>
               </div>
-              <div className="stat-card success">
-                <h3 id="normalPoints">
-                  {summaryStats.normal_points.toLocaleString()}
-                </h3>
-                <p>Poin Normal</p>
-              </div>
-              <div className="stat-card">
-                <h3 id="anomalyPercentage">
-                  {summaryStats.anomaly_percentage}%
-                </h3>
-                <p>Tingkat Anomali</p>
+
+              <div className="charts-container">
+                <div className="card">
+                  <h2 className="card-title">
+                    <span className="material-icons">bar_chart</span>
+                    Metrik Distribusi Data
+                  </h2>
+                  <div className="chart-container">
+                    <canvas id="distributionChart" ref={distributionChartRef}></canvas>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h2 className="card-title">
+                    <span className="material-icons">bubble_chart</span>
+                    Magnitudo Skor Anomali
+                  </h2>
+                  <div className="chart-container">
+                    <canvas id="scoreChart" ref={scoreChartRef}></canvas>
+                  </div>
+                </div>
               </div>
             </div>
+          )}
+        </div>
 
-            <div className="card">
+        {resultsVisible && (
+          <div className="sidebar-content">
+            <div className="card anomaly-list" id="anomalyList">
               <h2 className="card-title">
-                <span className="material-icons">timeline</span>
-                Analisis Tren *Real-time*
+                <span className="material-icons">warning</span>
+                Peringatan Anomali Kritis
               </h2>
-              <div className="controls">
-                <div className="control-group">
-                  <label htmlFor="chartType">Tipe Visualisasi</label>
-                  <select
-                    id="chartType"
-                    value={chartType}
-                    onChange={(e) => setChartType(e.target.value)}
-                  >
-                    <option value="line">Grafik Garis</option>
-                    <option value="scatter">Diagram Sebar</option>
-                    <option value="both">Tampilan Gabungan</option>
-                  </select>
-                </div>
-                <div className="control-group">
-                  <label htmlFor="dataRange">Jendela Data</label>
-                  <select
-                    id="dataRange"
-                    value={dataRange}
-                    onChange={(e) => setDataRange(e.target.value)}
-                  >
-                    <option value="all">Semua Data Tersedia</option>
-                    <option value="last100">100 Entri Terakhir</option>
-                    <option value="last50">50 Entri Terakhir</option>
-                    <option value="anomalies">Hanya Anomali</option>
-                  </select>
-                </div>
-              </div>
-              <div className="chart-container large">
-                <canvas id="mainChart" ref={mainChartRef}></canvas>
-              </div>
-            </div>
-
-            <div className="charts-container">
-              <div className="card">
-                <h2 className="card-title">
-                  <span className="material-icons">bar_chart</span>
-                  Metrik Distribusi Data
-                </h2>
-                <div className="chart-container">
-                  <canvas id="distributionChart" ref={distributionChartRef}></canvas>
-                </div>
-              </div>
-
-              <div className="card">
-                <h2 className="card-title">
-                  <span className="material-icons">bubble_chart</span>
-                  Magnitudo Skor Anomali
-                </h2>
-                <div className="chart-container">
-                  <canvas id="scoreChart" ref={scoreChartRef}></canvas>
-                </div>
-              </div>
+              <div id="anomaliesContainer"></div>
             </div>
           </div>
-        </div>
-
-        <div className="sidebar-content" style={{ display: resultsVisible ? "block" : "none" }}>
-          <div className="card anomaly-list" id="anomalyList">
-            <h2 className="card-title">
-              <span className="material-icons">warning</span>
-              Peringatan Anomali Kritis
-            </h2>
-            <div id="anomaliesContainer"></div>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Floating Action Button (Analyze Data) */}
-      <div className="fab" onClick={uploadCsv}>
-        <span className="material-icons">analytics</span>
-      </div>
+      {/* Floating Action Button (Analyze Data) - Muncul hanya jika tidak loading dan tidak ada modal */}
+      {!loading && !showConfirmModal && (
+        <div className="fab" onClick={uploadCsv}>
+          <span className="material-icons">analytics</span>
+        </div>
+      )}
 
       {/* Custom Confirmation Modal */}
       <div id="confirmModal" className={`modal-overlay ${showConfirmModal ? "show" : ""}`}>
@@ -897,10 +905,12 @@ function App() {
         </div>
       </div>
 
-      {/* Tombol Ganti Tema */}
-      <div className="fab theme-toggle" onClick={toggleTheme} style={{ bottom: '90px' }}>
-        <span className="material-icons">palette</span>
-      </div>
+      {/* Tombol Ganti Tema - Muncul hanya jika tidak loading dan tidak ada modal */}
+      {!loading && !showConfirmModal && (
+        <div className="fab theme-toggle" onClick={toggleTheme} style={{ bottom: '90px' }}>
+          <span className="material-icons">palette</span>
+        </div>
+      )}
     </div>
   );
 }

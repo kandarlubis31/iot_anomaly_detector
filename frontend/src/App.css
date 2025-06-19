@@ -5,7 +5,7 @@
 /* Tema Terang (Default) */
 :root {
   /* Warna Utama & Aksen */
-  --color-primary: #667eea; /* Biru Ungu dari tema lamamu */
+  --color-primary: #007bff; /* Biru cerah (baru) */
   --color-secondary: #28a745; /* Hijau terang */
   --color-accent: #17a2b8; /* Cyan */
   --color-danger: #dc3545; /* Merah */
@@ -13,14 +13,14 @@
   --color-info: #17a2b8; /* Biru kehijauan */
 
   /* Latar Belakang & Permukaan */
-  --bg-body: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* Gradien aslimu untuk body */
-  --bg-container: rgba(255, 255, 255, 0.98); /* Background container asli */
-  --bg-card: #ffffff; /* Background card asli */
-  --bg-input: #ffffff; /* Background input asli */
-  --bg-upload-section: #f8f9fa; /* Background upload section asli */
-  --bg-anomaly-list: linear-gradient(135deg, #fff8e1, #fff3c4); /* Background anomaly list asli */
-  --bg-chart-container: #f8f9fa; /* Background chart container asli */
-  --bg-sidebar: rgba(0, 0, 0, 0.05); /* Sidebar di tema terang */
+  --bg-body: #f0f2f5; /* Warna solid abu-abu terang */
+  --bg-container: #ffffff; /* Background container putih */
+  --bg-card: #ffffff; /* Background card putih */
+  --bg-input: #ffffff; /* Background input putih */
+  --bg-upload-section: #f8f9fa; /* Background upload section sedikit abu */
+  --bg-anomaly-list: rgba(255, 193, 7, 0.1); /* Background anomaly list transparan kuning */
+  --bg-chart-container: #f8f9fa; /* Background chart container sedikit abu */
+  --bg-sidebar: #f8f9fa; /* Sidebar sedikit abu */
 
   /* Teks */
   --text-main: #343a40; /* Teks utama gelap */
@@ -44,7 +44,7 @@
   --transition-speed: 0.3s ease-out; /* Transisi umum */
 }
 
-/* Tema Gelap (Akan diaktifkan dengan class .dark-theme) */
+/* Tema Gelap (.dark-theme) */
 .dark-theme {
   /* Warna Utama & Aksen */
   --color-primary: #007bff; /* Biru terang baru */
@@ -74,6 +74,13 @@
   --border-card: #3a3b5b;
   --border-upload-dashed: rgba(0, 123, 255, 0.4);
   --border-anomaly-list: #ffc107;
+
+  /* Shadow (untuk tema gelap, cenderung lebih pekat) */
+  --shadow-sm: 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.6);
+  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 /* ========================================================================== */
@@ -98,41 +105,50 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
   display: flex;
-  align-items: flex-start;
+  align-items: center; /* Kembali ke tengah vertikal untuk body */
   justify-content: center;
   padding: 24px;
-  /* Properti yang akan berubah dengan tema */
-  background: var(--bg-body);
+  background: var(--bg-body); /* Gunakan variabel baru untuk body */
   color: var(--text-main);
-  transition: background-color var(--transition-speed), color var(--transition-speed);
+  transition: background var(--transition-speed), color var(--transition-speed);
 }
 
-/* Untuk menargetkan body di dalam komponen React yang di-*mount* di #root */
 #root {
   width: 100%;
-  height: 100%;
+  min-height: calc(100vh - 48px); /* Kurangi padding body */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
-/* Container utama aplikasi */
+.app-container {
+  width: 100%;
+  height: 100%; /* Memastikan ini mengisi ruang yang tersedia */
+  display: flex;
+  flex-direction: column; /* Ini diperlukan untuk menempatkan FAB dengan benar */
+  align-items: center;
+}
+
 .container {
   width: 100%;
-  max-width: 1500px;
+  max-width: 1500px; /* Biar tetap lebar di desktop */
   background: var(--bg-container);
   border-radius: 12px;
-  box-shadow: var(--shadow-xl); /* Menggunakan shadow-xl sebagai default */
+  box-shadow: var(--shadow-xl);
   overflow: hidden;
   display: grid;
   grid-template-columns: 1fr;
   gap: 0;
   border: 1px solid var(--border-default);
   transition: background var(--transition-speed), box-shadow var(--transition-speed), border-color var(--transition-speed);
-  max-height: calc(100vh - 48px); /* Mengisi viewport dikurangi padding body */
-  overflow-y: auto;
+  
+  /* Untuk membuat objek tengah "fullscreen" */
+  min-height: calc(100vh - 48px); /* Mengisi tinggi layar dikurangi padding body */
+  display: grid; /* Tetap grid layout di dalamnya */
+  flex-grow: 1; /* Biar elemen ini mengisi ruang vertikal di dalam app-container */
 }
+
 
 @media (min-width: 1024px) {
   .container {
@@ -144,27 +160,15 @@ body {
 /* HEADER                                                                     */
 /* ========================================================================== */
 .header {
-  background: var(--color-primary); /* Menggunakan color-primary sebagai background header */
+  background: var(--color-primary);
   padding: 32px;
   color: var(--text-contrast);
   position: relative;
   overflow: hidden;
   grid-column: 1 / -1;
   text-align: center;
+  /* Hapus atau nonaktifkan ::before di sini jika masih ada */
 }
-
-/* Hapus animasi float di header jika membebani */
-/* .header::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-  animation: float 6s ease-in-out infinite;
-  z-index: 0;
-} */
 
 .header h1 {
   font-family: 'Montserrat', sans-serif;
@@ -248,39 +252,23 @@ body {
   border: 2px dashed var(--border-upload-dashed);
   background-color: var(--bg-upload-section);
   transition: all var(--transition-speed);
-  position: relative; /* Untuk pseudo-element */
+  position: relative;
   overflow: hidden;
 }
 
-/* Hapus animasi pseudo-element di upload-section jika membebani */
-/* .upload-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
-  transition: left var(--transition-speed);
-} */
-
 .upload-section:hover {
   border-color: var(--color-primary);
-  background-color: rgba(0, 123, 255, 0.1); /* Tetap gunakan nilai ini atau buat variabel baru jika perlu */
+  background-color: rgba(0, 123, 255, 0.1);
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
-
-/* .upload-section:hover::before {
-  left: 100%;
-} */
-
 
 .file-input-wrapper {
   position: relative;
   display: inline-block;
   width: 100%;
   margin-bottom: 20px;
+  height: 80px; /* Beri tinggi agar klik mudah */
 }
 
 .file-input-wrapper input[type="file"] {
@@ -289,6 +277,7 @@ body {
   width: 100%;
   height: 100%;
   cursor: pointer;
+  z-index: 2; /* Pastikan input ini di atas div display */
 }
 
 .file-input-display {
@@ -300,33 +289,23 @@ body {
   cursor: pointer;
   transition: all var(--transition-speed);
   box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Hapus animasi pseudo-element di file-input-display jika membebani */
-/* .file-input-display::before {
-  content: '';
-  position: absolute;
+  position: absolute; /* agar mengisi wrapper */
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(45deg, transparent 30%, rgba(102, 126, 234, 0.05) 50%, transparent 70%);
-  transform: translateX(-100%);
-  transition: transform var(--transition-speed);
-} */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
 
 .file-input-display:hover {
   border-color: var(--color-primary);
-  background: rgba(0, 123, 255, 0.08); /* Tetap gunakan nilai ini atau buat variabel baru jika perlu */
+  background: rgba(0, 123, 255, 0.08);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
-
-/* .file-input-display:hover::before {
-  transform: translateX(100%);
-} */
 
 .file-input-display strong {
   font-weight: 600;
@@ -356,31 +335,13 @@ body {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: var(--shadow-md); /* Menggunakan shadow-md sebagai default */
-  position: relative;
-  overflow: hidden;
+  box-shadow: var(--shadow-md);
 }
-
-/* Hapus animasi pseudo-element di btn jika membebani */
-/* .btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: left var(--transition-speed);
-} */
 
 .btn:hover {
   box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
 }
-
-/* .btn:hover::before {
-  left: 100%;
-} */
 
 .btn:active {
   box-shadow: var(--shadow-sm);
@@ -393,7 +354,7 @@ body {
 }
 
 .btn-primary:hover {
-  background: #0056b3; /* Darker shade of primary blue */
+  background: #0056b3;
 }
 
 .btn-secondary {
@@ -450,7 +411,7 @@ body {
 }
 
 .fab:hover {
-  background-color: #218838; /* Darker shade of secondary green */
+  background-color: #218838;
   box-shadow: var(--shadow-md);
   transform: translateY(-4px);
 }
@@ -460,14 +421,13 @@ body {
   transform: translateY(0);
 }
 
-/* Tombol Ganti Tema */
 .fab.theme-toggle {
   background-color: var(--color-accent);
-  bottom: 90px; /* Di atas FAB utama */
+  bottom: 90px;
 }
 
 .fab.theme-toggle:hover {
-  background-color: #138496; /* Darker shade of accent cyan */
+  background-color: #138496;
 }
 
 
@@ -479,7 +439,7 @@ body {
   border-radius: 8px;
   margin-bottom: 24px;
   font-weight: 600;
-  display: none; /* Default hidden, React akan mengelolanya */
+  /* display: none; -> Dikelola oleh React */
   animation: fadeIn 0.4s ease-out;
   box-shadow: var(--shadow-md);
   text-align: center;
@@ -508,7 +468,7 @@ body {
 /* LOADING SPINNER                                                            */
 /* ========================================================================== */
 .loading-spinner {
-  display: none; /* Default hidden, React akan mengelolanya */
+  /* display: none; -> Dikelola oleh React */
   text-align: center;
   padding: 60px;
   display: flex;
@@ -531,14 +491,14 @@ body {
 /* RESULTS SECTION (STATS & CHARTS)                                           */
 /* ========================================================================== */
 .results-section {
-  display: grid; /* Default hidden, React akan mengelolanya */
-  opacity: 0;
-  visibility: hidden;
+  /* display: grid; -> Dikelola oleh React */
+  opacity: 0; /* Default hidden */
+  visibility: hidden; /* Default hidden */
   transition: opacity 0.3s ease-out, visibility 0.3s ease-out, transform 0.3s ease-out;
   transform: translateY(20px);
 }
 
-.results-section.show {
+.results-section.show { /* React akan menambahkan class ini */
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -572,7 +532,7 @@ body {
   margin-bottom: 8px;
   font-weight: 300;
   line-height: 1;
-  color: var(--text-main); /* Default text color */
+  color: var(--text-main);
 }
 
 .stat-card p {
@@ -614,7 +574,7 @@ body {
   margin-bottom: 16px;
   background: var(--bg-chart-container);
   border-radius: 8px;
-  padding: 16px; /* Tambahkan padding agar chart tidak terlalu mepet */
+  padding: 16px;
   border: 1px solid var(--border-card);
 }
 
@@ -679,7 +639,7 @@ body {
 }
 
 .anomaly-item {
-  background: var(--bg-card); /* Menggunakan bg-card untuk konsistensi */
+  background: var(--bg-card);
   padding: 16px;
   margin-bottom: 12px;
   border-radius: 6px;
@@ -853,7 +813,6 @@ body {
 /* ========================================================================== */
 /* ACCESSIBILITY & PERFORMANCE IMPROVEMENTS                                   */
 /* ========================================================================== */
-/* Hapus animasi dan transisi jika pengguna meminta reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -864,7 +823,6 @@ body {
   }
 }
 
-/* Focus visible untuk keyboard navigation */
 *:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
