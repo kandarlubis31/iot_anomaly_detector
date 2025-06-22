@@ -12,7 +12,7 @@ class AnomalyDetector:
         self.model_path = model_path
         self.model = None
         self.feature_cols = ['temperature', 'humidity', 'pressure', 'power_consumption']
-        self.isolation_forest = IsolationForest(contamination=0.03, random_state=42)
+        self.isolation_forest = IsolationForest(contamination=0.05, random_state=42) 
 
     def train_model(self, df):
         try:
@@ -71,6 +71,11 @@ class AnomalyDetector:
                 return df_result
             predictions = self.model.predict(X_predict_clean)
             anomaly_scores = self.model.decision_function(X_predict_clean)
+
+            # --- TAMBAHKAN LOG PREDIKSI DI BACKEND ---
+            logger.info(f"Summary of predictions: {np.unique(predictions, return_counts=True)}")
+            # --- AKHIR TAMBAH LOG ---
+
             df_result['is_anomaly'] = False
             df_result['anomaly_score'] = 0.0
             df_result.loc[valid_indices, 'is_anomaly'] = (predictions == -1)

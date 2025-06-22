@@ -11,6 +11,8 @@ from sklearn.ensemble import IsolationForest
 import joblib
 import logging
 
+from anomaly_model import AnomalyDetector # Sesuaikan import path jika berbeda
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -41,78 +43,7 @@ def generate_sample_data(n_points=1000):
     })
     return df
 
-class AnomalyDetector:
-    def __init__(self, model_path="models/isolation_forest_model.joblib"):
-        self.model_path = os.path.join(BASE_DIR, model_path)
-        self.model = None
-        self.feature_cols = ['temperature', 'humidity', 'pressure', 'power_consumption']
-        self.isolation_forest = IsolationForest(contamination=0.03, random_state=42)
-        
-    def train_model(self, df):
-        try:
-            logger.info(f"Training model dengan {len(df)} data points")
-            missing_cols = [col for col in self.feature_cols if col not in df.columns]
-            if missing_cols:
-                raise ValueError(f"Kolom yang diperlukan tidak ditemukan: {missing_cols}")
-            X_train = df[self.feature_cols].copy()
-            for col in X_train.columns:
-                X_train[col] = pd.to_numeric(X_train[col], errors='coerce')
-            X_train = X_train.dropna()
-            if X_train.empty:
-                raise ValueError("DataFrame kosong setelah preprocessing")
-            self.isolation_forest.fit(X_train)
-            self.model = self.isolation_forest
-            joblib.dump(self.model, self.model_path)
-            logger.info(f"Model berhasil dilatih dan disimpan di {self.model_path}")
-            return True
-        except Exception as e:
-            logger.error(f"Error training model: {e}")
-            self.model = None
-            return False
-
-    def load_model(self):
-        try:
-            if os.path.exists(self.model_path):
-                self.model = joblib.load(self.model_path)
-                logger.info("Model berhasil dimuat")
-                return True
-            else:
-                logger.warning(f"Model tidak ditemukan di {self.model_path}")
-                return False
-        except Exception as e:
-            logger.error(f"Error loading model: {e}")
-            self.model = None
-            return False
-
-    def predict_anomaly(self, df):
-        if self.model is None:
-            logger.error("Model belum dimuat atau dilatih")
-            return None
-        try:
-            missing_cols = [col for col in self.feature_cols if col not in df.columns]
-            if missing_cols:
-                raise ValueError(f"Kolom yang diperlukan tidak ditemukan: {missing_cols}")
-            df_result = df.copy()
-            X_predict = df[self.feature_cols].copy()
-            for col in X_predict.columns:
-                X_predict[col] = pd.to_numeric(X_predict[col], errors='coerce')
-            valid_indices = X_predict.dropna().index
-            X_predict_clean = X_predict.dropna()
-            if X_predict_clean.empty:
-                logger.warning("Tidak ada data valid untuk prediksi")
-                df_result['is_anomaly'] = False
-                df_result['anomaly_score'] = 0.0
-                return df_result
-            predictions = self.model.predict(X_predict_clean)
-            anomaly_scores = self.model.decision_function(X_predict_clean)
-            df_result['is_anomaly'] = False
-            df_result['anomaly_score'] = 0.0
-            df_result.loc[valid_indices, 'is_anomaly'] = (predictions == -1)
-            df_result.loc[valid_indices, 'anomaly_score'] = anomaly_scores
-            return df_result
-        except Exception as e:
-            logger.error(f"Error predicting anomaly: {e}")
-            return None
+# Hapus definisi class AnomalyDetector di sini jika sudah ada di anomaly_model.py
 
 app = Flask(__name__)
 CORS(app)
@@ -146,7 +77,7 @@ def prepare_chart_data(df, max_chart_points=2000):
         sampled_df = df
     else:
         anomalies_df = df[df['is_anomaly'] == True]
-        normal_df = df[df['is_anomaly'] == False]
+        normal_df = df[df['is_anomaly'] == False] # Pastikan filter ini menggunakan Boolean
         num_anomalies = len(anomalies_df)
         remaining_points_for_normal = max_chart_points - num_anomalies
         if remaining_points_for_normal <= 0:
@@ -164,7 +95,7 @@ def prepare_chart_data(df, max_chart_points=2000):
         'timestamps': sampled_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
         'temperatures': sampled_df['temperature'].round(2).tolist(),
         'power_consumptions': sampled_df['power_consumption'].round(2).tolist(),
-        'is_anomaly': sampled_df['is_anomaly'].tolist(),
+        'is_anomaly': sampled_df['is_anomaly'].tolist(), # Ini akan menjadi True/False (boolean)
         'anomaly_scores': sampled_df['anomaly_score'].round(4).tolist()
     }
 
@@ -195,7 +126,7 @@ def upload_csv():
         except Exception as e:
             logger.error(f"Error reading CSV: {e}")
             return jsonify({'error': f'Error reading CSV file: {str(e)}'}), 500
-        
+
         logger.info(f"CSV loaded: {len(df)} rows, columns: {df.columns.tolist()}")
         required_cols = ['temperature', 'humidity', 'pressure', 'power_consumption']
         missing_cols = [col for col in required_cols if col not in df.columns]
@@ -212,7 +143,7 @@ def upload_csv():
             except:
                 start_time = datetime.now() - timedelta(minutes=len(df))
                 df['timestamp'] = [start_time + timedelta(minutes=i) for i in range(len(df))]
-        
+
         logger.info("Training model with uploaded data...")
         if detector.model is None:
             logger.warning("Model tidak dimuat/dilatih saat startup, mencoba latih dengan data upload.")
@@ -222,14 +153,14 @@ def upload_csv():
 
         logger.info("Predicting anomalies...")
         result_df = detector.predict_anomaly(df)
-        
+
         if result_df is None:
             return jsonify({'error': 'Failed to predict anomalies'}), 500
-        
+
         total_points = len(result_df)
         num_anomalies = int(result_df['is_anomaly'].sum())
         anomaly_percentage = round((num_anomalies / total_points) * 100, 2) if total_points > 0 else 0
-        
+
         response_data = {
             'success': True,
             'message': 'Anomaly detection completed successfully',
@@ -238,10 +169,10 @@ def upload_csv():
             'anomaly_percentage': anomaly_percentage,
             'chart_data': prepare_chart_data(result_df)
         }
-        
+
         logger.info(f"Analysis complete: {num_anomalies}/{total_points} anomalies detected ({anomaly_percentage}%)")
         return jsonify(response_data)
-        
+
     except Exception as e:
         logger.error(f"Unexpected error in upload_csv: {e}")
         logger.error(traceback.format_exc())
@@ -260,17 +191,17 @@ def get_sample_data():
     try:
         n_points = int(request.args.get('points', 1000))
         df = generate_sample_data(n_points)
-        
+
         detector.train_model(df)
         result_df = detector.predict_anomaly(df)
-        
+
         if result_df is None:
             return jsonify({'error': 'Failed to generate sample data'}), 500
-        
+
         total_points = len(result_df)
         num_anomalies = int(result_df['is_anomaly'].sum())
         anomaly_percentage = round((num_anomalies / total_points) * 100, 2)
-        
+
         response_data = {
             'success': True,
             'message': 'Sample data generated successfully',
@@ -280,7 +211,7 @@ def get_sample_data():
             'chart_data': prepare_chart_data(result_df)
         }
         return jsonify(response_data)
-        
+
     except Exception as e:
         logger.error(f"Error generating sample data: {e}")
         return jsonify({'error': f'Error generating sample data: {str(e)}'}), 500
@@ -293,7 +224,7 @@ if __name__ == '__main__':
     print("   - GET http://localhost:5000/api/sample_data")
     print("   - GET http://localhost:5000/api/health")
     print("\n" + "="*50)
-    
+
     os.makedirs(MODELS_DIR, exist_ok=True)
 
     try:
@@ -310,6 +241,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Error saat membuat data IoT lokal: {e}")
 
+    # Pastikan model dilatih ulang dengan parameter baru jika belum ada
     if not detector.load_model():
         print("Model tidak dimuat, melatih model awal...")
         try:
@@ -318,5 +250,5 @@ if __name__ == '__main__':
             print("Model awal berhasil dilatih untuk pengembangan lokal.")
         except Exception as e:
             print(f"Gagal melatih model awal untuk pengembangan lokal: {e}")
-            
+
     app.run(debug=True, host='0.0.0.0', port=5000)
