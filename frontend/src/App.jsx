@@ -244,7 +244,7 @@ function App() {
         }
       });
 
-      // --- LOGIKA DATASET YANG LEBIH ROBUST DAN FLEKSIBEL ---
+      // --- LOGIKA DATASET LEBIH ROBUST DAN FLEKSIBEL ---
 
       // Kondisi 1: Tampilkan data normal sebagai GARIS
       // Hanya jika ada normalPoints DAN chartType adalah "line" atau "both"
@@ -972,6 +972,15 @@ function App() {
         </div>
 
         <div className="main-content">
+          <div className="csv-download-info" style={{ marginBottom: '20px', padding: '15px', borderRadius: '8px', backgroundColor: getCssVariable("--bg-container"), border: `1px solid ${getCssVariable("--border-default")}`, boxShadow: getCssVariable("--shadow-sm") }}>
+            <p style={{ color: getCssVariable("--text-secondary"), fontSize: '0.9rem', textAlign: 'center' }}>
+              Data simulasi dapat diunduh melalui link ini:{" "}
+              <a href="https://www.kaggle.com/datasets/hkayan/anomliot" target="_blank" rel="noopener noreferrer" style={{ color: getCssVariable("--color-primary"), fontWeight: 'bold' }}>
+                🔗 Kaggle Dataset: Anomaly IoT
+              </a>
+            </p>
+          </div>
+
           {message && (
             <div className={`message-box ${messageType}`}>
               {/* Menambahkan ikon Unicode berdasarkan tipe pesan */}
