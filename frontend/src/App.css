@@ -4,82 +4,167 @@
 
 /* Tema Terang (Default) */
 :root {
-  /* Warna Utama & Aksen */
-  --color-primary: #007bff; /* Biru cerah (baru) */
-  --color-secondary: #28a745; /* Hijau terang */
-  --color-accent: #17a2b8; /* Cyan */
-  --color-danger: #dc3545; /* Merah */
-  --color-warning: #ffc107; /* Kuning */
-  --color-info: #17a2b8; /* Biru kehijauan */
+  /* ==================================== */
+  /* Warna Dasar & Aksen                  */
+  /* ==================================== */
+  --color-primary: #007bff;
+  /* Biru utama untuk branding, tombol aksi, dan fokus */
+  --color-primary-dark: #0056b3;
+  /* Varian biru lebih gelap untuk hover atau elemen interaktif */
+  --color-primary-light: #e0f2ff;
+  /* Varian biru sangat terang untuk latar belakang subtle, highlight ringan, atau teks sekunder */
 
-  /* Latar Belakang & Permukaan */
-  --bg-body: #f0f2f5; /* Warna solid abu-abu terang */
-  --bg-container: #ffffff; /* Background container putih */
-  --bg-card: #ffffff; /* Background card putih */
-  --bg-input: #ffffff; /* Background input putih */
-  --bg-upload-section: #f8f9fa; /* Background upload section sedikit abu */
-  --bg-anomaly-list: rgba(255, 193, 7, 0.1); /* Background anomaly list transparan kuning */
-  --bg-chart-container: #f8f9fa; /* Background chart container sedikit abu */
-  --bg-sidebar: #f8f9fa; /* Sidebar sedikit abu */
+  --color-secondary: #28a745;
+  /* Hijau, untuk indikasi sukses, notifikasi positif, atau tombol alternatif */
+  --color-accent: #17a2b8;
+  /* Cyan, sebagai aksen pelengkap yang menarik atau untuk tombol pengalihan tema */
+  --color-danger: #dc3545;
+  /* Merah, untuk anomali terdeteksi, pesan error, atau aksi destruktif */
+  --color-warning: #ffc107;
+  /* Kuning/Oranye, untuk peringatan, highlight anomali, atau ikon status */
+  --color-info: #17a2b8;
+  /* Sama dengan accent, untuk pesan informasi umum */
 
-  /* Teks */
-  --text-main: #343a40; /* Teks utama gelap */
-  --text-muted: #6c757d; /* Teks sekunder */
-  --text-contrast: #ffffff; /* Teks di atas warna primer/sekunder */
+  /* ==================================== */
+  /* Latar Belakang & Permukaan           */
+  /* ==================================== */
+  --bg-body: #f4f6f9;
+  /* Latar belakang halaman keseluruhan yang lembut dan bersih */
+  --bg-container: #ffffff;
+  /* Background utama untuk kontainer modul aplikasi */
+  --bg-card: #ffffff;
+  /* Background khusus untuk komponen kartu */
+  --bg-input: #ffffff;
+  /* Background untuk elemen input dan form control */
+  --bg-upload-section: var(--color-primary-light);
+  /* Background area upload dengan sentuhan biru muda */
+  --bg-anomaly-list: rgba(255, 193, 7, 0.1);
+  /* Background transparan kuning untuk daftar anomali yang mencolok */
+  --bg-chart-container: #ffffff;
+  /* Background khusus untuk area grafik, menjaga konsistensi dengan card */
+  --bg-sidebar: #f8f9fa;
+  /* Background untuk sidebar, sedikit lebih gelap dari body untuk kontras */
+  --bg-overlay: rgba(0, 0, 0, 0.7);
+  /* Background untuk overlay modal */
 
-  /* Border */
-  --border-default: #dee2e6; /* Border default */
-  --border-card: #e9ecef; /* Border card */
-  --border-upload-dashed: #ced4da; /* Border dashed upload */
-  --border-anomaly-list: #ffc107; /* Border anomaly list */
+  /* ==================================== */
+  /* Teks                                 */
+  /* ==================================== */
+  --text-main: #212529;
+  /* Warna teks utama yang sangat gelap dan legible */
+  --text-secondary: #6c757d;
+  /* Warna teks sekunder atau deskripsi pelengkap */
+  --text-contrast: #ffffff;
+  /* Warna teks yang kontras saat di atas warna primer/sekunder (putih) */
+  --text-link: var(--color-primary);
+  /* Warna untuk hyperlink */
 
-  /* Shadow */
+  /* ==================================== */
+  /* Border & Garis Pembatas              */
+  /* ==================================== */
+  --border-default: #dee2e6;
+  /* Warna border umum untuk elemen UI */
+  --border-card: #e9ecef;
+  /* Warna border khusus untuk kartu, sedikit lebih terang */
+  --border-upload-dashed: #ced4da;
+  /* Warna border putus-putus untuk area upload */
+  --border-anomaly-highlight: var(--color-warning);
+  /* Border khusus untuk item anomali */
+
+  /* ==================================== */
+  /* Bayangan (Shadows)                   */
+  /* ==================================== */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 
-  /* Transisi */
-  --transition-speed: 0.3s ease-out; /* Transisi umum */
+  /* ==================================== */
+  /* Transisi & Animasi                   */
+  /* ==================================== */
+  --transition-speed: 0.3s ease-out;
+  /* Kecepatan transisi default untuk interaksi UI */
+  --transition-cubic: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Kurva Bezier untuk transisi yang lebih halus */
 }
 
 /* Tema Gelap (.dark-theme) */
 .dark-theme {
-  /* Warna Utama & Aksen */
-  --color-primary: #007bff; /* Biru terang baru */
-  --color-secondary: #28a745; /* Hijau terang */
-  --color-accent: #17a2b8; /* Cyan */
-  --color-danger: #dc3545; /* Merah */
-  --color-warning: #ffc107; /* Kuning */
-  --color-info: #17a2b8; /* Biru kehijauan */
+  /* ==================================== */
+  /* Warna Dasar & Aksen                  */
+  /* ==================================== */
+  --color-primary: #7bb5ed;
+  /* Biru terang untuk dark mode, lebih lembut */
+  --color-primary-dark: #4a8cdb;
+  /* Varian biru lebih gelap untuk hover di dark mode */
+  --color-primary-light: rgba(123, 181, 237, 0.15);
+  /* Biru transparan untuk latar belakang subtle */
 
-  /* Latar Belakang & Permukaan */
-  --bg-body: #1a1a2e; /* Biru tua sangat gelap */
-  --bg-container: #1f2041; /* Sedikit lebih terang dari background body */
-  --bg-card: rgba(255, 255, 255, 0.05); /* Transparan */
-  --bg-input: var(--bg-body);
-  --bg-upload-section: rgba(0, 123, 255, 0.05);
-  --bg-anomaly-list: rgba(255, 193, 7, 0.08); /* Kuning transparan */
-  --bg-chart-container: rgba(255, 255, 255, 0.08);
-  --bg-sidebar: rgba(0, 0, 0, 0.2);
+  --color-secondary: #4caf50;
+  /* Hijau, disesuaikan untuk dark mode */
+  --color-accent: #26a69a;
+  /* Teal, disesuaikan untuk dark mode */
+  --color-danger: #ef5350;
+  /* Merah, disesuaikan untuk dark mode */
+  --color-warning: #ffb300;
+  /* Kuning/Oranye, disesuaikan untuk dark mode */
+  --color-info: #26a69a;
+  /* Sama dengan accent di dark mode */
 
-  /* Teks */
-  --text-main: #e0e0e0; /* Teks utama terang */
-  --text-muted: #888; /* Teks sekunder terang */
+  /* ==================================== */
+  /* Latar Belakang & Permukaan           */
+  /* ==================================== */
+  --bg-body: #1a1c20;
+  /* Latar belakang halaman yang sangat gelap untuk pengalaman dark mode yang mendalam */
+  --bg-container: #23272b;
+  /* Background utama kontainer, sedikit lebih terang */
+  --bg-card: #2c313a;
+  /* Background kartu, lebih gelap dari container */
+  --bg-input: #3a3f47;
+  /* Background input yang lebih gelap */
+  --bg-upload-section: rgba(123, 181, 237, 0.1);
+  /* Area upload dengan aksen biru transparan */
+  --bg-anomaly-list: rgba(255, 179, 0, 0.1);
+  /* Background transparan kuning/oranye untuk daftar anomali */
+  --bg-chart-container: #2c313a;
+  /* Background chart, konsisten dengan bg-card */
+  --bg-sidebar: #262a2e;
+  /* Background sidebar, sedikit lebih gelap dari card */
+  --bg-overlay: rgba(0, 0, 0, 0.85);
+  /* Overlay modal lebih gelap di dark mode */
+
+  /* ==================================== */
+  /* Teks                                 */
+  /* ==================================== */
+  --text-main: #e0e0e0;
+  /* Warna teks utama yang terang dan nyaman di dark mode */
+  --text-secondary: #a0a8b4;
+  /* Warna teks sekunder yang lebih terbaca di dark mode */
   --text-contrast: #ffffff;
+  /* Teks kontras, tetap putih */
+  --text-link: var(--color-primary);
+  /* Warna link, sesuai primary di dark mode */
 
-  /* Border */
-  --border-default: #3a3b5b;
-  --border-card: #3a3b5b;
-  --border-upload-dashed: rgba(0, 123, 255, 0.4);
-  --border-anomaly-list: #ffc107;
+  /* ==================================== */
+  /* Border & Garis Pembatas              */
+  /* ==================================== */
+  --border-default: #3a3f47;
+  /* Warna border umum di dark mode */
+  --border-card: #343840;
+  /* Warna border kartu yang lebih gelap di dark mode */
+  --border-upload-dashed: rgba(123, 181, 237, 0.4);
+  /* Border putus-putus dengan aksen biru transparan */
+  --border-anomaly-highlight: var(--color-warning);
+  /* Border highlight anomali */
 
-  /* Shadow (untuk tema gelap, cenderung lebih pekat) */
-  --shadow-sm: 0 4px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.6);
+  /* ==================================== */
+  /* Bayangan (Shadows)                   */
+  /* ==================================== */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.5);
   --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
@@ -105,17 +190,17 @@ body {
   overflow-x: hidden;
   min-height: 100vh;
   display: flex;
-  align-items: center; /* Kembali ke tengah vertikal untuk body */
+  align-items: center;
   justify-content: center;
   padding: 24px;
-  background: var(--bg-body); /* Gunakan variabel baru untuk body */
+  background: var(--bg-body);
   color: var(--text-main);
   transition: background var(--transition-speed), color var(--transition-speed);
 }
 
 #root {
   width: 100%;
-  min-height: calc(100vh - 48px); /* Kurangi padding body */
+  min-height: calc(100vh - 48px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -124,18 +209,17 @@ body {
 
 .app-container {
   width: 100%;
-  height: 100%; /* Memastikan ini mengisi ruang yang tersedia */
+  height: 100%;
   display: flex;
-  flex-direction: column; /* Ini diperlukan untuk menempatkan FAB dengan benar */
+  flex-direction: column;
   align-items: center;
-  /* Tambahkan ini untuk memastikan FAB punya konteks posisi */
-  position: relative; /* Penting untuk FAB agar position: fixed relatif terhadap ini */
-  overflow: hidden; /* Mencegah konten keluar jika ada elemen yang melebar */
+  position: relative;
+  overflow: hidden;
 }
 
 .container {
   width: 100%;
-  max-width: 1500px; /* Biar tetap lebar di desktop */
+  max-width: 1500px;
   background: var(--bg-container);
   border-radius: 12px;
   box-shadow: var(--shadow-xl);
@@ -145,11 +229,9 @@ body {
   gap: 0;
   border: 1px solid var(--border-default);
   transition: background var(--transition-speed), box-shadow var(--transition-speed), border-color var(--transition-speed);
-  
-  /* Untuk membuat objek tengah "fullscreen" */
-  min-height: calc(100vh - 48px); /* Mengisi tinggi layar dikurangi padding body */
-  /* display: grid; -> Sudah didefinisikan di atas, jangan duplikasi */
-  flex-grow: 1; /* Biar elemen ini mengisi ruang vertikal di dalam app-container */
+
+  min-height: calc(100vh - 48px);
+  flex-grow: 1;
 }
 
 
@@ -163,14 +245,29 @@ body {
 /* HEADER                                                                     */
 /* ========================================================================== */
 .header {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   padding: 32px;
   color: var(--text-contrast);
   position: relative;
   overflow: hidden;
   grid-column: 1 / -1;
   text-align: center;
-  /* Hapus atau nonaktifkan ::before di sini jika masih ada */
+  background-size: 200% 200%;
+  animation: gradientShift 10s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .header h1 {
@@ -185,33 +282,6 @@ body {
   position: relative;
   z-index: 1;
 }
-
-/* Perbaiki gaya ikon Material Icons */
-.material-icons {
-  font-family: 'Material Icons';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px; /* Ukuran default */
-  display: inline-block;
-  line-height: 1;
-  text-transform: none;
-  letter-spacing: normal;
-  word-wrap: normal;
-  white-space: nowrap;
-  direction: ltr;
-
-  /* Support for all WebKit browsers. */
-  -webkit-font-smoothing: antialiased;
-  /* Support for Safari and Chrome. */
-  text-rendering: optimizeLegibility;
-
-  /* Support for Firefox. */
-  -moz-osx-font-smoothing: grayscale;
-
-  /* Support for IE. */
-  font-feature-settings: 'liga';
-}
-
 
 .header p {
   opacity: 0.9;
@@ -238,12 +308,26 @@ body {
   transition: background-color var(--transition-speed), border-color var(--transition-speed);
 }
 
+@media (min-width: 1024px) {
+
+  /* Adjust to 1024px for consistency with .container grid */
+  .sidebar-content {
+    border-left: 1px solid var(--border-default);
+    /* Ensure border is back for large screens */
+    border-top: none;
+    /* Remove top border for large screens */
+  }
+}
+
 @media (max-width: 1023px) {
+
+  /* This will apply for tablets in portrait and smaller */
   .sidebar-content {
     border-left: none;
     border-top: 1px solid var(--border-default);
   }
 }
+
 
 /* ========================================================================== */
 /* CARD STYLES                                                                */
@@ -254,12 +338,13 @@ body {
   border-radius: 8px;
   box-shadow: var(--shadow-md);
   padding: 24px;
-  transition: all var(--transition-speed);
+  transition: all var(--transition-speed) var(--transition-cubic);
+  /* Gunakan variabel cubic-bezier */
 }
 
 .card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-7px);
+  box-shadow: var(--shadow-xl);
 }
 
 .card-title {
@@ -281,16 +366,16 @@ body {
 .upload-section {
   border: 2px dashed var(--border-upload-dashed);
   background-color: var(--bg-upload-section);
-  transition: all var(--transition-speed);
+  transition: all var(--transition-speed) var(--transition-cubic);
   position: relative;
   overflow: hidden;
 }
 
 .upload-section:hover {
   border-color: var(--color-primary);
-  background-color: rgba(0, 123, 255, 0.1);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  background-color: var(--color-primary-light);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
 }
 
 .file-input-wrapper {
@@ -298,7 +383,7 @@ body {
   display: inline-block;
   width: 100%;
   margin-bottom: 20px;
-  min-height: 80px; /* Beri tinggi agar area klik mudah */
+  min-height: 80px;
 }
 
 .file-input-wrapper input[type="file"] {
@@ -307,7 +392,7 @@ body {
   width: 100%;
   height: 100%;
   cursor: pointer;
-  z-index: 2; /* Pastikan input ini di atas div display */
+  z-index: 2;
 }
 
 .file-input-display {
@@ -319,7 +404,7 @@ body {
   cursor: pointer;
   transition: all var(--transition-speed);
   box-shadow: var(--shadow-sm);
-  position: absolute; /* agar mengisi wrapper */
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -333,6 +418,7 @@ body {
 .file-input-display:hover {
   border-color: var(--color-primary);
   background: rgba(0, 123, 255, 0.08);
+  /* Tetap pakai rgba untuk efek transparan konsisten */
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -344,7 +430,8 @@ body {
 }
 
 .file-input-display span {
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  /* Gunakan text-secondary */
   font-size: 0.9rem;
 }
 
@@ -360,7 +447,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   cursor: pointer;
-  transition: all var(--transition-speed);
+  transition: all var(--transition-speed) var(--transition-cubic);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -384,7 +471,7 @@ body {
 }
 
 .btn-primary:hover {
-  background: #0056b3;
+  background: var(--color-primary-dark);
 }
 
 .btn-secondary {
@@ -394,6 +481,7 @@ body {
 
 .btn-secondary:hover {
   background-color: #138496;
+  /* Adjust if a secondary-dark variable is created */
 }
 
 .btn-danger {
@@ -406,7 +494,8 @@ body {
 }
 
 .btn:disabled {
-  background-color: var(--text-muted);
+  background-color: var(--text-secondary);
+  /* Gunakan text-secondary untuk disabled */
   cursor: not-allowed;
   box-shadow: none;
   opacity: 0.7;
@@ -436,12 +525,13 @@ body {
   justify-content: center;
   box-shadow: var(--shadow-lg);
   cursor: pointer;
-  transition: all var(--transition-speed);
+  transition: all var(--transition-speed) var(--transition-cubic);
   z-index: 100;
 }
 
 .fab:hover {
   background-color: #218838;
+  /* Adjust if a secondary-dark variable is created */
   box-shadow: var(--shadow-md);
   transform: translateY(-4px);
 }
@@ -453,11 +543,12 @@ body {
 
 .fab.theme-toggle {
   background-color: var(--color-accent);
-  bottom: 90px;
+  bottom: 100px;
 }
 
 .fab.theme-toggle:hover {
   background-color: #138496;
+  /* Adjust if an accent-dark variable is created */
 }
 
 
@@ -476,6 +567,7 @@ body {
 
 .message-box.info {
   background-color: rgba(0, 123, 255, 0.2);
+  /* Tetap rgba untuk konsistensi efek transparan */
   border-left: 5px solid var(--color-info);
   color: var(--color-info);
 }
@@ -509,6 +601,7 @@ body {
   width: 50px;
   height: 50px;
   border: 5px solid rgba(0, 123, 255, 0.2);
+  /* Ganti dengan var(--color-primary-light) jika ingin lebih konsisten */
   border-top: 5px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -519,13 +612,13 @@ body {
 /* RESULTS SECTION (STATS & CHARTS)                                           */
 /* ========================================================================== */
 .results-section {
-  opacity: 0; /* Default hidden */
-  visibility: hidden; /* Default hidden */
+  opacity: 0;
+  visibility: hidden;
   transition: opacity 0.3s ease-out, visibility 0.3s ease-out, transform 0.3s ease-out;
   transform: translateY(20px);
 }
 
-.results-section.show { /* React akan menambahkan class ini */
+.results-section.show {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
@@ -544,7 +637,7 @@ body {
   border-radius: 8px;
   box-shadow: var(--shadow-md);
   text-align: center;
-  transition: all var(--transition-speed);
+  transition: all var(--transition-speed) var(--transition-cubic);
   border: 1px solid var(--border-card);
 }
 
@@ -559,11 +652,12 @@ body {
   margin-bottom: 8px;
   font-weight: 300;
   line-height: 1;
-  color: var(--text-main); /* Default text color */
+  color: var(--text-main);
 }
 
 .stat-card p {
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  /* Gunakan text-secondary */
   font-size: 0.9rem;
   font-weight: 400;
   text-transform: uppercase;
@@ -627,7 +721,8 @@ body {
 
 .control-group label {
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  /* Gunakan text-secondary */
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -657,7 +752,8 @@ body {
 /* ========================================================================== */
 .anomaly-list {
   background: var(--bg-anomaly-list);
-  border: 1px solid var(--border-anomaly-list);
+  border: 1px solid var(--border-anomaly-highlight);
+  /* Gunakan border-anomaly-highlight */
 }
 
 .anomaly-list .card-title {
@@ -690,7 +786,8 @@ body {
 }
 
 .anomaly-item small {
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  /* Gunakan text-secondary */
   font-size: 0.8rem;
 }
 
@@ -709,7 +806,8 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: var(--bg-overlay);
+  /* Gunakan variabel overlay */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -731,50 +829,79 @@ body {
   box-shadow: var(--shadow-xl);
   width: 90%;
   max-width: 450px;
-  transform: translateY(-20px);
-  transition: transform 0.3s ease-out, background-color var(--transition-speed), border-color var(--transition-speed), box-shadow var(--transition-speed);
+  transform: translateY(-20px) scale(0.95);
+  /* Tambah efek scale */
+  transition: transform 0.3s var(--transition-cubic),
+    /* Gunakan variabel cubic-bezier */
+    background-color var(--transition-speed),
+    border-color var(--transition-speed),
+    box-shadow var(--transition-speed);
   border: 1px solid var(--border-default);
 }
 
 .modal-overlay.show .modal-content {
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
 .modal-title {
   font-family: 'Montserrat', sans-serif;
-  font-size: 1.6rem;
-  font-weight: 600;
+  font-size: 1.8rem;
+  /* Sedikit lebih besar */
+  font-weight: 700;
+  /* Lebih tebal */
   margin-bottom: 20px;
   color: var(--color-primary);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 15px;
 }
 
 .modal-content p {
   font-size: 1rem;
   color: var(--text-main);
-  margin-bottom: 25px;
-  line-height: 1.5;
+  margin-bottom: 30px;
+  line-height: 1.6;
+  text-align: center;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-default);
+}
+
+.modal-actions .btn {
+  min-width: 100px;
+  justify-content: center;
 }
 
 /* ========================================================================== */
 /* ANIMATIONS                                                                 */
 /* ========================================================================== */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ========================================================================== */
@@ -784,53 +911,109 @@ body {
   body {
     padding: 16px;
   }
+
   .container {
     grid-template-columns: 1fr;
   }
+
   .header h1 {
     font-size: 2rem;
   }
-  .main-content, .sidebar-content {
+
+  .main-content,
+  .sidebar-content {
     padding: 24px;
   }
+
   .stats-grid {
     grid-template-columns: 1fr 1fr;
     gap: 16px;
   }
+
   .charts-container {
     grid-template-columns: 1fr;
     gap: 24px;
   }
+
   .fab {
     bottom: 20px;
     right: 20px;
     width: 50px;
     height: 50px;
   }
+
   .fab.theme-toggle {
     bottom: 80px;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 767px) {
+  body {
+    padding: 0;
+  }
+
+  .container {
+    border-radius: 0;
+    min-height: 100vh;
+    box-shadow: none;
+  }
+
+  .main-content,
+  .sidebar-content {
+    padding: 20px;
+  }
+
+  .header {
+    padding: 24px;
+  }
+
   .header h1 {
     font-size: 1.8rem;
     gap: 10px;
   }
-  .main-content, .sidebar-content {
+
+  .header p {
+    font-size: 0.95rem;
+  }
+
+  .fab {
+    width: 50px;
+    height: 50px;
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .fab.theme-toggle {
+    bottom: 76px;
+  }
+}
+
+
+@media (max-width: 480px) {
+  .header h1 {
+    font-size: 1.6rem;
+    gap: 8px;
+  }
+
+  .main-content,
+  .sidebar-content {
     padding: 16px;
   }
+
   .card {
     padding: 16px;
   }
+
   .card-title {
     font-size: 1.3rem;
     margin-bottom: 15px;
   }
+
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }
+
   .btn {
     padding: 10px 20px;
     font-size: 0.9rem;
@@ -841,6 +1024,7 @@ body {
 /* ACCESSIBILITY & PERFORMANCE IMPROVEMENTS                                   */
 /* ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

@@ -5,6 +5,7 @@ frontend/node_modules/
 
 # Build artifacts
 frontend/dist/
+frontend_2
 backend/__pycache__/
 .vercel/
 
