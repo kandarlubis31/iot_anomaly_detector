@@ -5,15 +5,11 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-// --- PERBAIKAN IMPORT CHART.JS ---
 import * as Chart from 'chart.js';
-// Menghapus import chartjs-adapter-date-fns karena scale "time" tidak digunakan lagi
-// import "chartjs-adapter-date-fns";
 import "./App.css";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-// --- PERBAIKAN REGISTRASI CHART.JS ---
 Chart.Chart.register(...Chart.registerables);
 
 
@@ -252,7 +248,7 @@ function App() {
 
       // Kondisi 1: Tampilkan data normal sebagai GARIS
       // Hanya jika ada normalPoints DAN chartType adalah "line" atau "both"
-      if ((chartType === "line" || chartType === "both") && normalPoints.length > 0) {
+      if (normalPoints.length > 0 && (chartType === "line" || chartType === "both")) {
         datasets.push(
           {
             label: "Suhu (Normal)",
