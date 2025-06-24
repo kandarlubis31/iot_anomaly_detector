@@ -15,8 +15,6 @@ app = Flask(__name__)
 CORS(app)
 
 detector = AnomalyDetector()
-
-# Coba muat model saat startup, jika gagal tidak apa-apa, akan dilatih saat upload pertama.
 detector.load_model()
 
 def find_column_by_keyword(df, keyword):
@@ -36,9 +34,8 @@ def prepare_chart_data(df, max_points=2000):
     df[time_col] = pd.to_datetime(df[time_col])
     df = df.sort_values(by=time_col)
 
-    # Logika sampling data untuk dikirim ke frontend
     if len(df) > max_points:
-        anomalies_df = df[df[anomaly_col] == 1] if anomaly_col and df[anomaly_col].sum() > 0 else pd.DataFrame()
+        anomalies_df = df[df[anomaly_col] == 1] if anomaly_col in df and df[anomaly_col].sum() > 0 else pd.DataFrame()
         normal_df = df[~df.index.isin(anomalies_df.index)]
         
         n_anomalies = len(anomalies_df)
@@ -51,7 +48,6 @@ def prepare_chart_data(df, max_points=2000):
 
     metric_cols = [col for col in df.columns if col in KNOWN_METRIC_HEADERS]
     
-    # Membuat struktur data baku untuk frontend
     response = {
         "timestamp": df[time_col].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
         "is_anomaly": df[anomaly_col].astype(int).tolist() if anomaly_col in df else [0] * len(df),
@@ -68,15 +64,18 @@ def upload_csv():
             return jsonify({'error': 'File tidak ter-upload'}), 400
         file = request.files['csv_file']
         
+        contamination = request.form.get('contamination', 0.04, type=float)
+        
         df = pd.read_csv(file, sep=r'[;,]', engine='python', on_bad_lines='skip')
         logger.info(f"File CSV berhasil dibaca. Kolom: {df.columns.tolist()}")
 
-        # Jika model belum ada, latih dengan data yang diupload
-        if detector.model is None:
-            logger.info("Model belum ada. Melakukan training pertama kali dengan data ini.")
-            training_success = detector.train_model(df)
-            if not training_success:
-                return jsonify({'error': 'Gagal melatih model awal'}), 500
+        logger.info(f"Melatih ulang model dengan data baru dan contamination={contamination}...")
+        training_success = detector.train_model(df, contamination=contamination)
+        if not training_success:
+            return jsonify({'error': 'Gagal melatih model dengan data baru'}), 500
+        
+        logger.info("Memaksa load ulang model dari file untuk memastikan konsistensi...")
+        detector.load_model()
         
         logger.info("Melakukan prediksi anomali...")
         result_df = detector.predict_anomaly(df)

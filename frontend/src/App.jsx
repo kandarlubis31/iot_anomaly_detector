@@ -246,6 +246,7 @@ function App() {
     anomalies.forEach(anomaly => {
       const item = document.createElement("div");
       item.className = "anomaly-item";
+      item.style.cursor = "pointer";
       item.onclick = () => handleAnomalyClick(anomaly);
       item.innerHTML = `<div><strong>⏰ ${anomaly.time.toLocaleString()}</strong><br><small>${formatHeaderToUnit(primaryMetric)}: ${anomaly.primary.toFixed(2)}</small></div><span class="anomaly-score">🎯 ${anomaly.score.toFixed(3)}</span>`;
       fragment.appendChild(item);
@@ -284,6 +285,7 @@ function App() {
       setDetectedMetrics(metricKeys);
       setPrimaryMetric(metricKeys.find(k => k.toLowerCase().includes('temperature')) || metricKeys[0] || null);
       setSecondaryMetric(metricKeys.find(k => k !== (metricKeys.find(k => k.toLowerCase().includes('temperature')) || metricKeys[0])) || metricKeys[1] || null);
+      setView('dashboard');
       setResultsVisible(true);
     } catch (error) {
       showMessage(`Error: ${error.message}`, "error");
@@ -300,6 +302,7 @@ function App() {
     setSummaryStats(DEFAULT_SUMMARY_STATS); setFileDisplayContent(DEFAULT_FILE_DISPLAY);
     setMessage(""); setChartType("line"); setDataRange("all");
     setDetectedMetrics([]); setPrimaryMetric(null); setSecondaryMetric(null);
+    setView('dashboard');
     if (csvFileInputRef.current) csvFileInputRef.current.value = "";
     if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
   }, [destroyChart]);
@@ -307,13 +310,13 @@ function App() {
   const toggleTheme = useCallback(() => setCurrentTheme(p => (p === "default" ? "dark-theme" : "default")), []);
   useEffect(() => { document.documentElement.className = currentTheme; }, [currentTheme]);
   useEffect(() => {
-    if (resultsVisible && processedData) {
+    if (view === 'dashboard' && resultsVisible && processedData) {
       createMainChart(processedData);
       createDistributionChart(processedData);
       createScoreChart(processedData);
       createAnomalyList(processedData);
     }
-  }, [resultsVisible, processedData, createMainChart, createDistributionChart, createScoreChart, createAnomalyList]);
+  }, [view, resultsVisible, processedData, createMainChart, createDistributionChart, createScoreChart, createAnomalyList]);
   
   if (view === 'detail') {
     return <AnomalyDetail 

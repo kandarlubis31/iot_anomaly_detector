@@ -78,7 +78,7 @@ function AnomalyDetail({ anomaly, fullRawData, onBack, primaryMetric, secondaryM
       </div>
       <div className="card">
         <h3 className="card-title">📊 Konteks Kejadian</h3>
-        <p className="context-desc">Grafik ini menunjukkan {formatHeaderToUnit(primaryMetric)} 10 menit sebelum dan sesudah anomali (titik merah) terjadi.</p>
+        <p className="context-desc">Grafik ini menunjukkan {formatHeaderToUnit(primaryMetric)} 10 data point sebelum dan sesudah anomali (titik merah) terjadi.</p>
         <div className="chart-container" style={{height: '350px'}}>
           <canvas ref={contextChartRef}></canvas>
         </div>

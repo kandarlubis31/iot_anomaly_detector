@@ -28,7 +28,6 @@ class AnomalyDetector:
 
             logger.info(f"Training model dengan fitur: {self.features_used_by_model} dan contamination: {contamination}")
             
-            # Buat instance model di sini, bukan di __init__
             isolation_forest = IsolationForest(
                 contamination=float(contamination), 
                 random_state=42, 
@@ -87,9 +86,17 @@ class AnomalyDetector:
         if self.model is None or not self.features_used_by_model:
             logger.error("Model belum dimuat atau tidak memiliki informasi fitur.")
             return None
+        
+        try:
+            model_contamination = self.model.get_params()['contamination']
+            logger.info(f"--> PREDICTING with model. Contamination value is: {model_contamination}")
+        except Exception:
+            pass
             
         try:
-            missing_cols = [col for col in self.features_used_by_model if col not in df.columns]
+            missing_cols = [
+                col for col in self.features_used_by_model if col not in df.columns
+            ]
             if missing_cols:
                 raise ValueError(f"Kolom untuk prediksi tidak cocok: {missing_cols} tidak ditemukan.")
 
