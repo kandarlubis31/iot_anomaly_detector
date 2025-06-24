@@ -5,15 +5,21 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import * as Chart from 'chart.js';
+import * as Chart from "chart.js";
 import "./App.css";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 Chart.Chart.register(...Chart.registerables);
 
+const REQUIRED_HEADERS = [
+  "timestamps",
+  "temperatures",
+  "power_consumptions",
+  "is_anomaly",
+  "anomaly_scores",
+];
 
-// --- Constants ---
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
   "https://iotanomalydetector-production.up.railway.app";
@@ -22,7 +28,6 @@ const ANOMALY_DISPLAY_LIMIT = 50;
 const HISTOGRAM_BINS = 30;
 const SCORE_BINS = 15;
 
-// --- Default States ---
 const DEFAULT_SUMMARY_STATS = {
   total_points: 0,
   num_anomalies: 0,
@@ -31,15 +36,13 @@ const DEFAULT_SUMMARY_STATS = {
 };
 
 const DEFAULT_FILE_DISPLAY = {
-  icon: "📊", // Data chart icon
+  icon: "📊",
   name: "Pilih File CSV",
   details: "Klik untuk memuat data sensor IoT Anda (.csv)",
   color: "var(--text-muted)",
 };
 
-// --- Main App Component ---
 function App() {
-  // Core UI States
   const [fileSelected, setFileSelected] = useState(null);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("info");
@@ -51,25 +54,20 @@ function App() {
     return savedTheme || "default";
   });
 
-  // Data States
   const [summaryStats, setSummaryStats] = useState(DEFAULT_SUMMARY_STATS);
   const [rawData, setRawData] = useState(null);
-  const [chartType, setChartType] = useState("line"); // Default chart type
-  const [dataRange, setDataRange] = useState("last1000"); // Default range for initial performance
+  const [chartType, setChartType] = useState("line");
+  const [dataRange, setDataRange] = useState("last1000");
   const [fileDisplayContent, setFileDisplayContent] =
     useState(DEFAULT_FILE_DISPLAY);
 
-  // Refs for Charts and DOM elements
   const mainChartRef = useRef(null);
   const distributionChartRef = useRef(null);
   const scoreChartRef = useRef(null);
   const csvFileInputRef = useRef(null);
   const messageTimeoutRef = useRef(null);
-  const pdfButtonRef = useRef(null); // Ref for PDF download button
+  const pdfButtonRef = useRef(null);
 
-  // --- Utility Functions ---
-
-  // Filter raw data based on selected range, ensuring numeric data is parsed and valid
   const filterDataByRange = useCallback((data, range) => {
     if (!data?.timestamps?.length) {
       return {
@@ -98,17 +96,18 @@ function App() {
 
     for (let i = startIndex; i < data.timestamps.length; i++) {
       const rawIsAnomalyValue = data.is_anomaly[i];
-      // Anggap anomali jika nilai adalah true, 1, atau string "True" / "1".
-      // Selain itu (false, 0, string "False" / "0", null, undefined) anggap normal.
-      const isAnomaly = (rawIsAnomalyValue === true || rawIsAnomalyValue === 1 || String(rawIsAnomalyValue).toLowerCase() === 'true' || String(rawIsAnomalyValue) === '1');
+      const isAnomaly =
+        rawIsAnomalyValue === true ||
+        rawIsAnomalyValue === 1 ||
+        String(rawIsAnomalyValue).toLowerCase() === "true" ||
+        String(rawIsAnomalyValue) === "1";
 
       const temp = parseFloat(data.temperatures[i]);
       const power = parseFloat(data.power_consumptions[i]);
       const score = parseFloat(data.anomaly_scores[i]);
 
       if (isNaN(temp) || isNaN(power) || isNaN(score)) {
-          // console.warn(`filterDataByRange: Skipping row ${i} due to invalid numeric data. Temp: '${data.temperatures[i]}', Power: '${data.power_consumptions[i]}', Score: '${data.anomaly_scores[i]}'`);
-          continue;
+        continue;
       }
 
       if (range === "anomalies" && !isAnomaly) continue;
@@ -116,7 +115,7 @@ function App() {
       filteredTimestamps.push(data.timestamps[i]);
       filteredTemperatures.push(temp);
       filteredPowerConsumptions.push(power);
-      filteredIsAnomaly.push(isAnomaly); // Simpan nilai boolean yang sudah benar
+      filteredIsAnomaly.push(isAnomaly);
       filteredAnomalyScores.push(score);
     }
 
@@ -129,13 +128,11 @@ function App() {
     };
   }, []);
 
-  // Memoized processed data for efficient re-renders
   const processedData = useMemo(() => {
     if (!rawData) return null;
     return filterDataByRange(rawData, dataRange);
   }, [rawData, dataRange, filterDataByRange]);
 
-  // Get CSS variable value dynamically
   const getCssVariable = useCallback((variable) => {
     if (typeof document !== "undefined") {
       return getComputedStyle(document.documentElement)
@@ -145,7 +142,6 @@ function App() {
     return "";
   }, []);
 
-  // Display temporary messages to the user
   const showMessage = useCallback((msg, type = "info") => {
     setMessage(msg);
     setMessageType(type);
@@ -159,22 +155,20 @@ function App() {
     }, MESSAGE_TIMEOUT);
   }, []);
 
-  // Update summary statistics display
   const updateSummaryStats = useCallback((result) => {
     const total = result.total_points;
     const anomalies = result.num_anomalies;
     const normal = total - anomalies;
-    const percentage = total > 0 ? ((anomalies / total) * 100).toFixed(2) : 0;
+    const percentage = total > 0 ? (anomalies / total) * 100 : 0;
 
     setSummaryStats({
       total_points: total,
       num_anomalies: anomalies,
       normal_points: normal,
-      anomaly_percentage: parseFloat(percentage),
+      anomaly_percentage: parseFloat(percentage.toFixed(2)),
     });
   }, []);
 
-  // Create histogram data from raw values
   const createHistogram = useCallback((data, bins) => {
     if (!data?.length) return { labels: [], counts: [] };
 
@@ -198,15 +192,12 @@ function App() {
     return { labels, counts };
   }, []);
 
-  // Destroy a Chart.js instance to prevent memory leaks
   const destroyChart = useCallback((chartRef) => {
     if (chartRef.current?.chart) {
       chartRef.current.chart.destroy();
       chartRef.current.chart = null;
     }
   }, []);
-
-  // --- Chart Creation Functions ---
 
   const createMainChart = useCallback(
     (data) => {
@@ -220,10 +211,10 @@ function App() {
         return;
       }
 
-      destroyChart(mainChartRef); // Destroy existing chart before creating a new one
+      destroyChart(mainChartRef);
 
       const ctx = canvas.getContext("2d");
-      let datasets = []; // Gunakan let karena mungkin akan di-reset
+      let datasets = [];
       const timestampsParsed = data.timestamps.map((ts) => new Date(ts));
 
       const normalPoints = [];
@@ -231,7 +222,7 @@ function App() {
 
       timestampsParsed.forEach((timestamp, index) => {
         const point = {
-          x: index, // Menggunakan index sebagai nilai X untuk linear scale
+          x: index,
           y: data.temperatures[index],
           y2: data.power_consumptions[index],
           score: data.anomaly_scores[index],
@@ -244,11 +235,10 @@ function App() {
         }
       });
 
-      // --- LOGIKA DATASET LEBIH ROBUST DAN FLEKSIBEL ---
-
-      // Kondisi 1: Tampilkan data normal sebagai GARIS
-      // Hanya jika ada normalPoints DAN chartType adalah "line" atau "both"
-      if (normalPoints.length > 0 && (chartType === "line" || chartType === "both")) {
+      if (
+        normalPoints.length > 0 &&
+        (chartType === "line" || chartType === "both")
+      ) {
         datasets.push(
           {
             label: "Suhu (Normal)",
@@ -278,9 +268,10 @@ function App() {
         );
       }
 
-      // Kondisi 2: Tampilkan data anomali sebagai SCATTER POINTS
-      // Hanya jika ada anomalyPoints DAN chartType adalah "scatter" atau "both"
-      if (anomalyPoints.length > 0 && (chartType === "scatter" || chartType === "both")) {
+      if (
+        anomalyPoints.length > 0 &&
+        (chartType === "scatter" || chartType === "both")
+      ) {
         datasets.push(
           {
             label: "Suhu (Anomali)",
@@ -318,72 +309,67 @@ function App() {
         );
       }
 
-      // Kondisi 3: KASUS KHUSUS - Anomali ditampilkan sebagai GARIS
-      // Ini terjadi jika:
-      // a) dataRange adalah "anomalies" dan chartType adalah "line" (pengguna ingin melihat anomali sebagai garis)
-      // ATAU
-      // b) normalPoints kosong, TAPI ada anomalyPoints dan chartType adalah "line" (grafik normal kosong, jadi tampilkan anomali sebagai garis)
-      // Pada kasus ini, kita ingin ANOMALI menjadi garis, dan MENGGANTIKAN dataset sebelumnya (jika ada scatter anomali)
       if (
-          (dataRange === "anomalies" && chartType === "line" && anomalyPoints.length > 0) ||
-          (normalPoints.length === 0 && chartType === "line" && anomalyPoints.length > 0)
+        (dataRange === "anomalies" &&
+          chartType === "line" &&
+          anomalyPoints.length > 0) ||
+        (normalPoints.length === 0 &&
+          chartType === "line" &&
+          anomalyPoints.length > 0)
       ) {
-          // Kosongkan datasets yang sudah ada jika kita akan merepresentasikan anomali sebagai garis
-          // Ini mencegah duplikasi jika (chartType === "both") juga aktif
-          datasets = [];
+        datasets = [];
 
-          // Tambahkan anomali sebagai line chart dengan points yang terlihat
-          datasets.push(
-            {
-              label: "Suhu (Anomali)", // Label tetap "Anomali"
-              data: anomalyPoints.map((d) => ({ x: d.x, y: d.y })),
-              borderColor: getCssVariable("--color-danger"),
-              backgroundColor: getCssVariable("--color-danger"),
-              borderWidth: 3,
-              fill: false,
-              tension: 0.2,
-              pointRadius: 6, // Points terlihat jelas
-              pointHoverRadius: 8,
-              pointStyle: "triangle",
-              type: "line", // Di-render sebagai line
-            },
-            {
-              label: "Daya (Anomali)",
-              data: anomalyPoints.map((d) => ({ x: d.x, y: d.y2 })),
-              borderColor: getCssVariable("--color-warning"),
-              backgroundColor: getCssVariable("--color-warning"),
-              borderWidth: 3,
-              fill: false,
-              tension: 0.2,
-              pointRadius: 6,
-              pointHoverRadius: 8,
-              pointStyle: "star",
-              yAxisID: "y1",
-              type: "line", // Di-render sebagai line
-            }
-          );
+        datasets.push(
+          {
+            label: "Suhu (Anomali)",
+            data: anomalyPoints.map((d) => ({ x: d.x, y: d.y })),
+            borderColor: getCssVariable("--color-danger"),
+            backgroundColor: getCssVariable("--color-danger"),
+            borderWidth: 3,
+            fill: false,
+            tension: 0.2,
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            pointStyle: "triangle",
+            type: "line",
+          },
+          {
+            label: "Daya (Anomali)",
+            data: anomalyPoints.map((d) => ({ x: d.x, y: d.y2 })),
+            borderColor: getCssVariable("--color-warning"),
+            backgroundColor: getCssVariable("--color-warning"),
+            borderWidth: 3,
+            fill: false,
+            tension: 0.2,
+            pointRadius: 6,
+            pointHoverRadius: 8,
+            pointStyle: "star",
+            yAxisID: "y1",
+            type: "line",
+          }
+        );
       }
 
-
-      // Jika datasets kosong total dan ada data mentah (walaupun tidak ada normal/anomali yang memenuhi kriteria chartType),
-      // tambahkan dummy dataset agar sumbu tetap tampil.
       if (datasets.length === 0 && data.timestamps.length > 0) {
-          datasets.push({
-              label: "Tidak Ada Data untuk Tampilan Ini",
-              data: [{ x: 0, y: 0 }], // Menggunakan x=0 untuk dummy point di linear scale
-              borderColor: getCssVariable("--text-muted"),
-              borderWidth: 1,
-              fill: false,
-              pointRadius: 0,
-              showLine: false // Jangan tampilkan garis untuk dummy data
-          });
+        datasets.push({
+          label: "Tidak Ada Data untuk Tampilan Ini",
+          data: [{ x: 0, y: 0 }],
+          borderColor: getCssVariable("--text-muted"),
+          borderWidth: 1,
+          fill: false,
+          pointRadius: 0,
+          showLine: false,
+        });
       }
 
-
-      // --- GUNAKAN Chart.Chart ---
       canvas.chart = new Chart.Chart(ctx, {
-        type: "line", // Base type, datasets override this
-        data: { labels: data.timestamps.map((ts) => new Date(ts).toLocaleString()), datasets }, // Labels untuk sumbu X
+        type: "line",
+        data: {
+          labels: data.timestamps.map((ts) =>
+            new Date(ts).toLocaleString()
+          ),
+          datasets,
+        },
         options: {
           responsive: true,
           maintainAspectRatio: false,
@@ -407,10 +393,11 @@ function App() {
             },
             tooltip: {
               callbacks: {
-                // Callback tooltip untuk sumbu X linear, tampilkan timestamp asli
                 title: (context) => {
-                    const index = context[0].parsed.x;
-                    return data.timestamps[index] ? new Date(data.timestamps[index]).toLocaleString() : '';
+                  const index = context[0].parsed.x;
+                  return data.timestamps[index]
+                    ? new Date(data.timestamps[index]).toLocaleString()
+                    : "";
                 },
                 label: (context) => {
                   let label = context.dataset.label || "";
@@ -445,12 +432,12 @@ function App() {
               },
               ticks: {
                 color: getCssVariable("--text-muted"),
-                callback: function(value, _index, _ticks) { // Gunakan _index, _ticks untuk menghindari warning no-unused-vars
-                    if (data.timestamps && data.timestamps[value]) { // value di sini adalah index data
-                        return new Date(data.timestamps[value]).toLocaleTimeString();
-                    }
-                    return value;
-                }
+                callback: function (value, _index, _ticks) {
+                  if (data.timestamps && data.timestamps[value]) {
+                    return new Date(data.timestamps[value]).toLocaleTimeString();
+                  }
+                  return value;
+                },
               },
               grid: { color: getCssVariable("--border-default") },
             },
@@ -490,7 +477,6 @@ function App() {
     [chartType, dataRange, destroyChart, getCssVariable]
   );
 
-  // Create/update the data distribution histogram chart
   const createDistributionChart = useCallback(
     (data) => {
       const canvas = distributionChartRef.current;
@@ -508,7 +494,7 @@ function App() {
       ];
       const bins = createHistogram(allMeasurements, HISTOGRAM_BINS);
 
-      canvas.chart = new Chart.Chart(ctx, { // Ubah dari new ChartJS
+      canvas.chart = new Chart.Chart(ctx, {
         type: "bar",
         data: {
           labels: bins.labels,
@@ -566,7 +552,6 @@ function App() {
     [createHistogram, destroyChart, getCssVariable]
   );
 
-  // Create/update the anomaly score distribution chart
   const createScoreChart = useCallback(
     (data) => {
       const canvas = scoreChartRef.current;
@@ -583,7 +568,7 @@ function App() {
       );
       const scoreBins = createHistogram(anomalyScoresOnly, SCORE_BINS);
 
-      canvas.chart = new Chart.Chart(ctx, { // Ubah dari new ChartJS
+      canvas.chart = new Chart.Chart(ctx, {
         type: "bar",
         data: {
           labels: scoreBins.labels,
@@ -641,15 +626,13 @@ function App() {
     [createHistogram, destroyChart, getCssVariable]
   );
 
-  // --- Anomaly List Rendering ---
   const createAnomalyList = useCallback(
     (data) => {
       const container = document.getElementById("anomaliesContainer");
       if (!container) return;
 
-      container.innerHTML = ""; // Clear previous content
+      container.innerHTML = "";
 
-      // If no data or no anomalies, display appropriate message
       if (!data?.timestamps?.length) {
         container.innerHTML = `<p style='color: ${getCssVariable(
           "--text-muted"
@@ -676,7 +659,7 @@ function App() {
         return;
       }
 
-      anomalies.sort((a, b) => b.score - a.score); // Sort by score
+      anomalies.sort((a, b) => b.score - a.score);
       const anomaliesToDisplay = anomalies.slice(0, ANOMALY_DISPLAY_LIMIT);
 
       const fragment = document.createDocumentFragment();
@@ -712,49 +695,92 @@ function App() {
     [getCssVariable]
   );
 
-  // --- File Handling Functions ---
-
-  // Handle file selection
-const handleFileChange = useCallback(
+  const handleFileChange = useCallback(
     (e) => {
       const file = e.target.files[0];
-      if (!file) {
-        return; 
-      }
 
-      const isValidCsv = file.name.toLowerCase().endsWith('.csv') && file.type === 'text/csv';
-
-      if (isValidCsv) {
-        setFileSelected(file);
-        setFileDisplayContent({
-          icon: "📈",
-          name: file.name,
-          details: `✅ File dipilih (${(file.size / 1024).toFixed(1)} KB)`,
-          color: getCssVariable("--color-secondary"),
-        });
-      } else {
-        showMessage(
-          "Waduh, file yang dipilih harus berekstensi .csv ya!",
-          "error"
-        );
+      const resetInput = () => {
         setFileSelected(null);
         setFileDisplayContent(DEFAULT_FILE_DISPLAY);
         if (csvFileInputRef.current) {
           csvFileInputRef.current.value = "";
         }
+      };
+
+      if (!file) {
+        resetInput();
+        return;
       }
+
+      const isCsvExtension = file.name.toLowerCase().endsWith(".csv");
+      if (!isCsvExtension) {
+        showMessage(
+          "Waduh, file yang dipilih harus berekstensi .csv ya!",
+          "error"
+        );
+        resetInput();
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        try {
+          const fileContent = event.target.result;
+          const firstLine = fileContent.split("\n")[0].trim();
+          const headersInFile = firstLine.split(",").map((h) => h.trim());
+
+          const hasAllRequiredHeaders = REQUIRED_HEADERS.every(
+            (requiredHeader) => headersInFile.includes(requiredHeader)
+          );
+
+          if (hasAllRequiredHeaders) {
+            setFileSelected(file);
+            setFileDisplayContent({
+              icon: "📈",
+              name: file.name,
+              details: `✅ Struktur file valid (${(
+                file.size / 1024
+              ).toFixed(1)} KB)`,
+              color: getCssVariable("--color-secondary"),
+            });
+          } else {
+            const missingHeaders = REQUIRED_HEADERS.filter(
+              (h) => !headersInFile.includes(h)
+            ).join(", ");
+            showMessage(
+              `Struktur CSV tidak cocok. Kolom yang hilang: ${missingHeaders}`,
+              "error"
+            );
+            resetInput();
+          }
+        } catch (readError) {
+          console.error("Error reading or parsing file header:", readError);
+          showMessage(
+            "Gagal memproses header CSV, file mungkin rusak.",
+            "error"
+          );
+          resetInput();
+        }
+      };
+
+      reader.onerror = () => {
+        console.error("FileReader error");
+        showMessage("Terjadi kesalahan saat membaca file.", "error");
+        resetInput();
+      };
+
+      reader.readAsText(file);
     },
     [getCssVariable, showMessage]
   );
-  
-  // Trigger hidden file input click
+
   const handleFileDisplayClick = useCallback(() => {
     csvFileInputRef.current?.click();
   }, []);
 
-  // Upload CSV file to backend for anomaly detection
   const uploadCsv = useCallback(async () => {
-    setMessage(""); // Clear previous messages
+    setMessage("");
     if (!fileSelected) {
       showMessage(
         "📁 Silakan pilih file CSV terlebih dahulu untuk memulai analisis.",
@@ -767,7 +793,7 @@ const handleFileChange = useCallback(
     formData.append("csv_file", fileSelected);
 
     setLoading(true);
-    setResultsVisible(false); // Hide results during new analysis
+    setResultsVisible(false);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/upload_csv`, {
@@ -781,7 +807,7 @@ const handleFileChange = useCallback(
         showMessage("🎉 Deteksi anomali berhasil diselesaikan!", "success");
         setRawData(result.chart_data);
         updateSummaryStats(result);
-        setResultsVisible(true); // Show results section
+        setResultsVisible(true);
       } else {
         console.error("Backend error:", result);
         showMessage(
@@ -800,11 +826,10 @@ const handleFileChange = useCallback(
       );
       setResultsVisible(false);
     } finally {
-      setLoading(false); // End loading state
+      setLoading(false);
     }
   }, [fileSelected, showMessage, updateSummaryStats]);
 
-  // Clear all data and reset app state
   const clearDataAndReload = useCallback(() => {
     setShowConfirmModal(true);
   }, []);
@@ -812,42 +837,36 @@ const handleFileChange = useCallback(
   const executeReset = useCallback(() => {
     setShowConfirmModal(false);
 
-    // Destroy all chart instances to prevent memory issues
     destroyChart(mainChartRef);
     destroyChart(distributionChartRef);
     destroyChart(scoreChartRef);
 
-    // Reset all relevant states to default
     setFileSelected(null);
     setRawData(null);
     setResultsVisible(false);
     setSummaryStats(DEFAULT_SUMMARY_STATS);
     setFileDisplayContent(DEFAULT_FILE_DISPLAY);
     setMessage("");
-    setChartType("line"); // Reset chartType to line on full reset
-    setDataRange("last1000"); // Reset to default performant data range
+    setChartType("line");
+    setDataRange("last1000");
 
-    // Clear file input value
     if (csvFileInputRef.current) {
       csvFileInputRef.current.value = "";
     }
 
-    // Clear any pending message timeout
     if (messageTimeoutRef.current) {
       clearTimeout(messageTimeoutRef.current);
     }
   }, [destroyChart]);
 
-  // Toggle between default and dark theme
   const toggleTheme = useCallback(() => {
-      setCurrentTheme((prev) => {
-        const newTheme = prev === "default" ? "dark-theme" : "default";
-        localStorage.setItem("theme", newTheme);
-        return newTheme;
-      });
-    }, []);
+    setCurrentTheme((prev) => {
+      const newTheme = prev === "default" ? "dark-theme" : "default";
+      localStorage.setItem("theme", newTheme);
+      return newTheme;
+    });
+  }, []);
 
-  // --- PDF Download Function ---
   const downloadPdf = useCallback(() => {
     showMessage("⏳ Mempersiapkan laporan PDF Anda...", "info");
     setLoading(true);
@@ -857,67 +876,60 @@ const handleFileChange = useCallback(
 
     if (resultsSection) {
       if (pdfButtonElement) {
-        pdfButtonElement.style.display = 'none';
+        pdfButtonElement.style.display = "none";
       }
 
       html2canvas(resultsSection, {
-        scale: 2.0, // Scale untuk kualitas, coba 1.5 jika 2.0 terlalu besar
+        scale: 2.0,
         useCORS: true,
         windowWidth: resultsSection.scrollWidth,
-        windowHeight: resultsSection.scrollHeight
+        windowHeight: resultsSection.scrollHeight,
       })
-      .then((canvas) => {
-        // Output sebagai JPEG dengan kualitas 0.8 untuk ukuran file yang lebih kecil
-        const imgData = canvas.toDataURL('image/jpeg', 0.8);
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgWidth = 210; // A4 width in mm
-        const pageHeight = 297; // A4 height in mm
-        const imgHeight = canvas.height * imgWidth / canvas.width;
+        .then((canvas) => {
+          const imgData = canvas.toDataURL("image/jpeg", 0.8);
+          const pdf = new jsPDF("p", "mm", "a4");
+          const imgWidth = 210;
+          const pageHeight = 297;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-        let heightLeft = imgHeight;
-        let position = 0;
-        let pageNumber = 1; // Mulai dari halaman pertama
+          let heightLeft = imgHeight;
+          let position = 0;
+          let pageNumber = 1;
 
-        // Tambahkan halaman pertama
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        // Tambahkan halaman kedua (maksimal 2 halaman)
-        while (heightLeft >= 0 && pageNumber < 2) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+          pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
           heightLeft -= pageHeight;
-          pageNumber++;
-        }
 
-        pdf.save('Laporan_Anomali_IoT.pdf');
-        showMessage("✅ Laporan PDF berhasil diunduh!", "success");
-      })
-      .catch((error) => {
-        console.error("Error generating PDF:", error);
-        showMessage("❌ Gagal mengunduh laporan PDF. Coba lagi.", "error");
-      })
-      .finally(() => {
-        if (pdfButtonElement) {
-          pdfButtonElement.style.display = 'flex';
-        }
-        setLoading(false);
-      });
+          while (heightLeft >= 0 && pageNumber < 2) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+            pageNumber++;
+          }
+
+          pdf.save("Laporan_Anomali_IoT.pdf");
+          showMessage("✅ Laporan PDF berhasil diunduh!", "success");
+        })
+        .catch((error) => {
+          console.error("Error generating PDF:", error);
+          showMessage("❌ Gagal mengunduh laporan PDF. Coba lagi.", "error");
+        })
+        .finally(() => {
+          if (pdfButtonElement) {
+            pdfButtonElement.style.display = "flex";
+          }
+          setLoading(false);
+        });
     } else {
       showMessage("⚠️ Tidak ada hasil untuk dibuat laporan PDF.", "warning");
       setLoading(false);
     }
   }, [showMessage, setLoading]);
 
-  // --- Effects ---
-
-  // Apply current theme to document root
   useEffect(() => {
     document.documentElement.className = currentTheme;
   }, [currentTheme]);
 
-  // Hide results and loading indicator if rawData is cleared
   useEffect(() => {
     if (!rawData) {
       setResultsVisible(false);
@@ -925,7 +937,6 @@ const handleFileChange = useCallback(
     }
   }, [rawData]);
 
-  // Re-create main chart when processedData, chartType, or theme changes
   useEffect(() => {
     if (processedData?.timestamps?.length) {
       createMainChart(processedData);
@@ -934,7 +945,6 @@ const handleFileChange = useCallback(
     }
   }, [processedData, chartType, createMainChart, destroyChart, currentTheme]);
 
-  // Re-create distribution, score charts, and anomaly list when processedData or theme changes
   useEffect(() => {
     if (processedData?.timestamps?.length) {
       createDistributionChart(processedData);
@@ -961,7 +971,6 @@ const handleFileChange = useCallback(
     getCssVariable,
   ]);
 
-  // Cleanup charts and message timeout on component unmount
   useEffect(() => {
     return () => {
       if (messageTimeoutRef.current) {
@@ -973,7 +982,6 @@ const handleFileChange = useCallback(
     };
   }, [destroyChart]);
 
-  // --- Rendered JSX ---
   return (
     <div className={`app-container ${currentTheme}`}>
       <div className="container">
@@ -985,10 +993,34 @@ const handleFileChange = useCallback(
         </div>
 
         <div className="main-content">
-          <div className="csv-download-info" style={{ marginBottom: '20px', padding: '15px', borderRadius: '8px', backgroundColor: getCssVariable("--bg-container"), border: `1px solid ${getCssVariable("--border-default")}`, boxShadow: getCssVariable("--shadow-sm") }}>
-            <p style={{ color: getCssVariable("--text-secondary"), fontSize: '0.9rem', textAlign: 'center' }}>
+          <div
+            className="csv-download-info"
+            style={{
+              marginBottom: "20px",
+              padding: "15px",
+              borderRadius: "8px",
+              backgroundColor: getCssVariable("--bg-container"),
+              border: `1px solid ${getCssVariable("--border-default")}`,
+              boxShadow: getCssVariable("--shadow-sm"),
+            }}
+          >
+            <p
+              style={{
+                color: getCssVariable("--text-secondary"),
+                fontSize: "0.9rem",
+                textAlign: "center",
+              }}
+            >
               Data simulasi dapat diunduh melalui link ini:{" "}
-              <a href="https://www.kaggle.com/datasets/hkayan/anomliot" target="_blank" rel="noopener noreferrer" style={{ color: getCssVariable("--color-primary"), fontWeight: 'bold' }}>
+              <a
+                href="https://www.kaggle.com/datasets/hkayan/anomliot"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: getCssVariable("--color-primary"),
+                  fontWeight: "bold",
+                }}
+              >
                 🔗 Kaggle Dataset: Anomaly IoT
               </a>
             </p>
@@ -996,7 +1028,6 @@ const handleFileChange = useCallback(
 
           {message && (
             <div className={`message-box ${messageType}`}>
-              {/* Menambahkan ikon Unicode berdasarkan tipe pesan */}
               {messageType === "success" && "✅ "}
               {messageType === "error" && "❌ "}
               {messageType === "info" && "ℹ️ "}
@@ -1134,7 +1165,6 @@ const handleFileChange = useCallback(
                   </div>
                 </div>
               </div>
-              {/* Tombol Unduh PDF */}
               <div
                 className="download-pdf-section"
                 style={{ textAlign: "center", marginTop: "20px" }}
@@ -1177,14 +1207,12 @@ const handleFileChange = useCallback(
         )}
       </div>
 
-      {/* FAB untuk Analisis Data */}
       {!loading && !showConfirmModal && (
         <div className="fab" onClick={uploadCsv} title="Mulai Analisis Data">
           🚀
         </div>
       )}
 
-      {/* FAB untuk Tombol Ganti Tema */}
       {!loading && !showConfirmModal && (
         <div
           className="fab theme-toggle"
@@ -1195,7 +1223,6 @@ const handleFileChange = useCallback(
         </div>
       )}
 
-      {/* Modal Konfirmasi */}
       <div className={`modal-overlay ${showConfirmModal ? "show" : ""}`}>
         <div className="modal-content">
           <h3 className="modal-title">❓ Konfirmasi Reset</h3>
