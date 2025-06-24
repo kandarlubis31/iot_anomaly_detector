@@ -715,12 +715,17 @@ function App() {
   // --- File Handling Functions ---
 
   // Handle file selection
-  const handleFileChange = useCallback(
+const handleFileChange = useCallback(
     (e) => {
       const file = e.target.files[0];
-      setFileSelected(file);
+      if (!file) {
+        return; 
+      }
 
-      if (file) {
+      const isValidCsv = file.name.toLowerCase().endsWith('.csv') && file.type === 'text/csv';
+
+      if (isValidCsv) {
+        setFileSelected(file);
         setFileDisplayContent({
           icon: "📈",
           name: file.name,
@@ -728,12 +733,20 @@ function App() {
           color: getCssVariable("--color-secondary"),
         });
       } else {
+        showMessage(
+          "Waduh, file yang dipilih harus berekstensi .csv ya!",
+          "error"
+        );
+        setFileSelected(null);
         setFileDisplayContent(DEFAULT_FILE_DISPLAY);
+        if (csvFileInputRef.current) {
+          csvFileInputRef.current.value = "";
+        }
       }
     },
-    [getCssVariable]
+    [getCssVariable, showMessage]
   );
-
+  
   // Trigger hidden file input click
   const handleFileDisplayClick = useCallback(() => {
     csvFileInputRef.current?.click();
