@@ -55,6 +55,8 @@ function App() {
   const [detectedMetrics, setDetectedMetrics] = useState([]);
   const [primaryMetric, setPrimaryMetric] = useState(null);
   const [secondaryMetric, setSecondaryMetric] = useState(null);
+  
+  const [anomaliesToDisplay, setAnomaliesToDisplay] = useState([]);
 
   const [contamination, setContamination] = useState(0.04);
   const [view, setView] = useState('dashboard');
@@ -226,35 +228,6 @@ function App() {
     });
   }, [createHistogram, getCssVariable]);
 
-  const createAnomalyList = useCallback((data) => {
-    const container = document.getElementById("anomaliesContainer");
-    if (!container || !data?.timestamp?.length || !primaryMetric || !secondaryMetric) return;
-    
-    const anomalies = data.timestamp.map((ts, i) => data.is_anomaly[i] === 1 ? {
-          time: new Date(ts), primary: data.metrics[primaryMetric]?.[i],
-          secondary: data.metrics[secondaryMetric]?.[i], score: data.anomaly_score?.[i],
-        } : null
-      ).filter(item => item && item.primary !== undefined && item.secondary !== undefined)
-       .sort((a, b) => b.score - a.score).slice(0, ANOMALY_DISPLAY_LIMIT);
-
-    if (anomalies.length === 0) {
-      container.innerHTML = `<p style='color: var(--text-muted); text-align: center;'>✅ Tidak ada anomali terdeteksi.</p>`;
-      return;
-    }
-    
-    const fragment = document.createDocumentFragment();
-    anomalies.forEach(anomaly => {
-      const item = document.createElement("div");
-      item.className = "anomaly-item";
-      item.style.cursor = "pointer";
-      item.onclick = () => handleAnomalyClick(anomaly);
-      item.innerHTML = `<div><strong>⏰ ${anomaly.time.toLocaleString()}</strong><br><small>${formatHeaderToUnit(primaryMetric)}: ${anomaly.primary.toFixed(2)}</small></div><span class="anomaly-score">🎯 ${anomaly.score.toFixed(3)}</span>`;
-      fragment.appendChild(item);
-    });
-    container.innerHTML = '';
-    container.appendChild(fragment);
-  }, [primaryMetric, secondaryMetric]);
-
   const handleFileChange = useCallback((e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -302,21 +275,38 @@ function App() {
     setSummaryStats(DEFAULT_SUMMARY_STATS); setFileDisplayContent(DEFAULT_FILE_DISPLAY);
     setMessage(""); setChartType("line"); setDataRange("all");
     setDetectedMetrics([]); setPrimaryMetric(null); setSecondaryMetric(null);
+    setAnomaliesToDisplay([]);
     setView('dashboard');
     if (csvFileInputRef.current) csvFileInputRef.current.value = "";
     if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
   }, [destroyChart]);
 
   const toggleTheme = useCallback(() => setCurrentTheme(p => (p === "default" ? "dark-theme" : "default")), []);
+  
   useEffect(() => { document.documentElement.className = currentTheme; }, [currentTheme]);
+  
   useEffect(() => {
     if (view === 'dashboard' && resultsVisible && processedData) {
       createMainChart(processedData);
       createDistributionChart(processedData);
       createScoreChart(processedData);
-      createAnomalyList(processedData);
     }
-  }, [view, resultsVisible, processedData, createMainChart, createDistributionChart, createScoreChart, createAnomalyList]);
+  }, [view, resultsVisible, processedData, createMainChart, createDistributionChart, createScoreChart]);
+
+  useEffect(() => {
+    if (processedData && primaryMetric && secondaryMetric) {
+        const anomalies = processedData.timestamp.map((ts, i) => processedData.is_anomaly[i] === 1 ? {
+            time: new Date(ts),
+            primary: processedData.metrics[primaryMetric]?.[i],
+            secondary: processedData.metrics[secondaryMetric]?.[i],
+            score: processedData.anomaly_score?.[i],
+          } : null
+        ).filter(item => item && item.primary !== undefined && item.secondary !== undefined)
+         .sort((a, b) => b.score - a.score).slice(0, ANOMALY_DISPLAY_LIMIT);
+        
+        setAnomaliesToDisplay(anomalies);
+    }
+  }, [processedData, primaryMetric, secondaryMetric]);
   
   if (view === 'detail') {
     return <AnomalyDetail 
@@ -421,7 +411,24 @@ function App() {
         </div>
         {resultsVisible && (
           <div className="sidebar-content">
-            <div className="card anomaly-list"><h2 className="card-title">🚨 Peringatan Anomali</h2><div id="anomaliesContainer"></div></div>
+            <div className="card anomaly-list">
+              <h2 className="card-title">🚨 Peringatan Anomali</h2>
+              <div id="anomaliesContainer">
+                {anomaliesToDisplay.length > 0 ? (
+                  anomaliesToDisplay.map((anomaly, index) => (
+                    <div key={index} className="anomaly-item" style={{cursor: 'pointer'}} onClick={() => handleAnomalyClick(anomaly)}>
+                      <div>
+                        <strong>⏰ {anomaly.time.toLocaleString()}</strong><br />
+                        <small>{formatHeaderToUnit(primaryMetric)}: {anomaly.primary.toFixed(2)}</small>
+                      </div>
+                      <span className="anomaly-score">🎯 {anomaly.score.toFixed(3)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>✅ Tidak ada anomali terdeteksi.</p>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

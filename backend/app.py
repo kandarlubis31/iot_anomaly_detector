@@ -69,6 +69,16 @@ def upload_csv():
         df = pd.read_csv(file, sep=r'[;,]', engine='python', on_bad_lines='skip')
         logger.info(f"File CSV berhasil dibaca. Kolom: {df.columns.tolist()}")
 
+        # ================================================================= #
+        # === VALIDASI INFORMATIF BARU ==================================== #
+        if find_column_by_keyword(df, 'time') is None:
+            return jsonify({'error': "File CSV tidak valid. Kolom 'Time' wajib ada."}), 400
+
+        found_metrics = [col for col in df.columns if col in KNOWN_METRIC_HEADERS]
+        if not found_metrics:
+            return jsonify({'error': "File CSV tidak valid. Tidak ada kolom metrik yang dikenali (e.g., Temperature, Humidity)."}), 400
+        # ================================================================= #
+        
         logger.info(f"Melatih ulang model dengan data baru dan contamination={contamination}...")
         training_success = detector.train_model(df, contamination=contamination)
         if not training_success:
