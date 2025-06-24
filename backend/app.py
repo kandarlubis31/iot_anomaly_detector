@@ -1,4 +1,3 @@
-# backend/app.py
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
@@ -6,249 +5,107 @@ import numpy as np
 import os
 import io
 import traceback
-from datetime import datetime, timedelta
-from sklearn.ensemble import IsolationForest
-import joblib
 import logging
+from anomaly_model import AnomalyDetector
 
-from anomaly_model import AnomalyDetector # Sesuaikan import path jika berbeda
-
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODELS_DIR = os.path.join(BASE_DIR, "models")
-DATA_DIR = os.path.join(BASE_DIR, "data")
-
-os.makedirs(MODELS_DIR, exist_ok=True)
-
-def generate_sample_data(n_points=1000):
-    np.random.seed(42)
-    start_time = datetime.now() - timedelta(hours=n_points//60)
-    timestamps = [start_time + timedelta(minutes=i) for i in range(n_points)]
-    temperatures = np.random.normal(25, 3, n_points)
-    humidity = np.random.normal(60, 10, n_points)
-    pressure = np.random.normal(1013, 20, n_points)
-    power_consumption = np.random.normal(100, 15, n_points)
-    anomaly_indices = np.random.choice(n_points, size=int(n_points * 0.05), replace=False)
-    for idx in anomaly_indices:
-        temperatures[idx] += np.random.choice([-1, 1]) * np.random.uniform(10, 20)
-        power_consumption[idx] += np.random.choice([-1, 1]) * np.random.uniform(50, 100)
-    df = pd.DataFrame({
-        'timestamp': timestamps,
-        'temperature': temperatures,
-        'humidity': humidity,
-        'pressure': pressure,
-        'power_consumption': power_consumption
-    })
-    return df
-
-# Hapus definisi class AnomalyDetector di sini jika sudah ada di anomaly_model.py
 
 app = Flask(__name__)
 CORS(app)
 
-CORS(app, resources={r"/api/*": {"origins": "https://iot-anomaly-detector.vercel.app/"}})
-
 detector = AnomalyDetector()
+detector.load_model()
 
-INITIAL_TRAINING_DATA_PATH = os.path.join(DATA_DIR, "iot_data.csv")
-if os.path.exists(detector.model_path):
-    logger.info("Mencoba memuat model yang sudah ada...")
-    detector.load_model()
-else:
-    logger.info("Model belum ditemukan, melatih model baru...")
-    try:
-        if os.path.exists(INITIAL_TRAINING_DATA_PATH):
-            initial_df = pd.read_csv(INITIAL_TRAINING_DATA_PATH)
-            detector.train_model(initial_df)
+def find_column_by_keyword(df, keyword):
+    for col in df.columns:
+        if keyword.lower() in col.lower():
+            return col
+    return None
+
+def prepare_chart_data(df, max_points=2000):
+    time_col = find_column_by_keyword(df, 'time')
+    anomaly_col = find_column_by_keyword(df, 'is_anomaly')
+    
+    if not time_col or not anomaly_col:
+        raise ValueError("Kolom 'Time' atau 'is_anomaly' tidak ditemukan di DataFrame hasil.")
+    
+    df[time_col] = pd.to_datetime(df[time_col])
+    df = df.sort_values(by=time_col)
+
+    if len(df) > max_points:
+        anomalies = df[df[anomaly_col] == 1]
+        normal = df[df[anomaly_col] == 0]
+        
+        n_anomalies = len(anomalies)
+        n_normal_to_sample = max(0, max_points - n_anomalies)
+        
+        sampled_normal = normal.sample(n=n_normal_to_sample, random_state=42) if len(normal) > n_normal_to_sample else normal
+        
+        df = pd.concat([anomalies, sampled_normal]).sort_values(by=time_col)
+        logger.info(f"Data di-sampling menjadi {len(df)} titik untuk dikirim ke chart.")
+
+    chart_data = {}
+    for column in df.columns:
+        if pd.api.types.is_datetime64_any_dtype(df[column]):
+            chart_data[column] = df[column].dt.strftime('%Y-%m-%d %H:%M:%S').tolist()
+        elif pd.api.types.is_numeric_dtype(df[column]):
+            chart_data[column] = df[column].round(3).tolist()
         else:
-            logger.warning(f"Data pelatihan awal '{INITIAL_TRAINING_DATA_PATH}' tidak ditemukan.")
-            logger.info("Membuat data sampel untuk pelatihan awal model.")
-            sample_df_for_training = generate_sample_data(1000)
-            detector.train_model(sample_df_for_training)
-    except Exception as e:
-        logger.error(f"Gagal melatih model awal: {e}")
-        pass
-
-def prepare_chart_data(df, max_chart_points=2000):
-    total_points = len(df)
-    if total_points <= max_chart_points:
-        sampled_df = df
-    else:
-        anomalies_df = df[df['is_anomaly'] == True]
-        normal_df = df[df['is_anomaly'] == False] # Pastikan filter ini menggunakan Boolean
-        num_anomalies = len(anomalies_df)
-        remaining_points_for_normal = max_chart_points - num_anomalies
-        if remaining_points_for_normal <= 0:
-            sampled_df = anomalies_df
-            logger.warning(f"Hanya {num_anomalies} anomali yang dikirim karena melebihi batas {max_chart_points} chart points.")
-        else:
-            if len(normal_df) > remaining_points_for_normal:
-                sampled_normal_df = normal_df.sample(n=remaining_points_for_normal, random_state=42)
-            else:
-                sampled_normal_df = normal_df
-            sampled_df = pd.concat([anomalies_df, sampled_normal_df]).sort_values('timestamp').reset_index(drop=True)
-            logger.info(f"Data disampling: {len(sampled_df)} dari {total_points} poin dikirim ({num_anomalies} anomali + {len(sampled_normal_df)} normal).")
-
-    return {
-        'timestamps': sampled_df['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
-        'temperatures': sampled_df['temperature'].round(2).tolist(),
-        'power_consumptions': sampled_df['power_consumption'].round(2).tolist(),
-        'is_anomaly': sampled_df['is_anomaly'].tolist(), # Ini akan menjadi True/False (boolean)
-        'anomaly_scores': sampled_df['anomaly_score'].round(4).tolist()
-    }
+            chart_data[column] = df[column].tolist()
+            
+    return chart_data
 
 @app.route('/api/upload_csv', methods=['POST'])
 def upload_csv():
     try:
         if 'csv_file' not in request.files:
-            return jsonify({'error': 'No file uploaded'}), 400
+            return jsonify({'error': 'File tidak ter-upload'}), 400
         file = request.files['csv_file']
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
-        if not file.filename.lower().endswith('.csv'):
-            return jsonify({'error': 'File must be a CSV'}), 400
-        try:
-            file_content = file.read()
-            file.seek(0)
-            encodings = ['utf-8', 'latin-1', 'cp1252']
-            df = None
-            for encoding in encodings:
-                try:
-                    df = pd.read_csv(io.StringIO(file_content.decode(encoding)))
-                    logger.info(f"Successfully read CSV with {encoding} encoding")
-                    break
-                except (UnicodeDecodeError, pd.errors.EmptyDataError):
-                    continue
-            if df is None:
-                return jsonify({'error': 'Could not read CSV file. Please check file encoding.'}), 400
-        except Exception as e:
-            logger.error(f"Error reading CSV: {e}")
-            return jsonify({'error': f'Error reading CSV file: {str(e)}'}), 500
+        
+        df = pd.read_csv(file, sep=r'[;,]', engine='python')
+        logger.info(f"File CSV berhasil dibaca. Kolom: {df.columns.tolist()}")
 
-        logger.info(f"CSV loaded: {len(df)} rows, columns: {df.columns.tolist()}")
-        required_cols = ['temperature', 'humidity', 'pressure', 'power_consumption']
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        if missing_cols:
-            logger.warning(f"Missing required columns: {missing_cols}")
-            logger.info("Using sample data for demonstration")
-            df = generate_sample_data(len(df) if len(df) > 0 else 1000)
-        if 'timestamp' not in df.columns:
-            start_time = datetime.now() - timedelta(minutes=len(df))
-            df['timestamp'] = [start_time + timedelta(minutes=i) for i in range(len(df))]
-        else:
-            try:
-                df['timestamp'] = pd.to_datetime(df['timestamp'])
-            except:
-                start_time = datetime.now() - timedelta(minutes=len(df))
-                df['timestamp'] = [start_time + timedelta(minutes=i) for i in range(len(df))]
-
-        logger.info("Training model with uploaded data...")
         if detector.model is None:
-            logger.warning("Model tidak dimuat/dilatih saat startup, mencoba latih dengan data upload.")
-            detector.train_model(df)
-            if detector.model is None:
-                return jsonify({'error': 'Failed to train or load model'}), 500
-
-        logger.info("Predicting anomalies...")
+            logger.info("Model belum ada. Melakukan training pertama kali dengan data ini.")
+            training_success = detector.train_model(df)
+            if not training_success:
+                return jsonify({'error': 'Gagal melatih model awal'}), 500
+        
+        logger.info("Melakukan prediksi anomali...")
         result_df = detector.predict_anomaly(df)
 
         if result_df is None:
-            return jsonify({'error': 'Failed to predict anomalies'}), 500
+            return jsonify({'error': 'Gagal melakukan prediksi anomali'}), 500
 
         total_points = len(result_df)
-        num_anomalies = int(result_df['is_anomaly'].sum())
+        num_anomalies = int(result_df[find_column_by_keyword(result_df, 'is_anomaly')].sum())
         anomaly_percentage = round((num_anomalies / total_points) * 100, 2) if total_points > 0 else 0
 
         response_data = {
             'success': True,
-            'message': 'Anomaly detection completed successfully',
+            'message': 'Deteksi anomali selesai',
             'total_points': total_points,
             'num_anomalies': num_anomalies,
             'anomaly_percentage': anomaly_percentage,
             'chart_data': prepare_chart_data(result_df)
         }
 
-        logger.info(f"Analysis complete: {num_anomalies}/{total_points} anomalies detected ({anomaly_percentage}%)")
+        logger.info(f"Analisis Selesai: {num_anomalies}/{total_points} anomali terdeteksi.")
         return jsonify(response_data)
 
     except Exception as e:
-        logger.error(f"Unexpected error in upload_csv: {e}")
-        logger.error(traceback.format_exc())
-        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+        logger.error(f"Error di endpoint upload_csv: {e}", exc_info=True)
+        return jsonify({'error': f'Internal Server Error: {str(e)}'}), 500
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({
         'status': 'healthy',
         'model_loaded': detector.model is not None,
-        'timestamp': datetime.now().isoformat()
+        'model_features': detector.features_used_by_model
     })
 
-@app.route('/api/sample_data', methods=['GET'])
-def get_sample_data():
-    try:
-        n_points = int(request.args.get('points', 1000))
-        df = generate_sample_data(n_points)
-
-        detector.train_model(df)
-        result_df = detector.predict_anomaly(df)
-
-        if result_df is None:
-            return jsonify({'error': 'Failed to generate sample data'}), 500
-
-        total_points = len(result_df)
-        num_anomalies = int(result_df['is_anomaly'].sum())
-        anomaly_percentage = round((num_anomalies / total_points) * 100, 2)
-
-        response_data = {
-            'success': True,
-            'message': 'Sample data generated successfully',
-            'total_points': total_points,
-            'num_anomalies': num_anomalies,
-            'anomaly_percentage': anomaly_percentage,
-            'chart_data': prepare_chart_data(result_df)
-        }
-        return jsonify(response_data)
-
-    except Exception as e:
-        logger.error(f"Error generating sample data: {e}")
-        return jsonify({'error': f'Error generating sample data: {str(e)}'}), 500
-
 if __name__ == '__main__':
-    print("🚀 Starting IoT Anomaly Detection Server...")
-    print("📊 Frontend will be available at: http://localhost:5173")
-    print("🔍 API endpoints (backend):")
-    print("   - POST http://localhost:5000/api/upload_csv")
-    print("   - GET http://localhost:5000/api/sample_data")
-    print("   - GET http://localhost:5000/api/health")
-    print("\n" + "="*50)
-
-    os.makedirs(MODELS_DIR, exist_ok=True)
-
-    try:
-        from backend.data.generate_iot_data import generate_iot_data as generate_local_iot_data
-        local_data_path = os.path.join(DATA_DIR, "iot_data.csv")
-        if not os.path.exists(local_data_path):
-            print("Membuat data IoT simulasi di lokal...")
-            generate_local_iot_data(num_records=1000, anomaly_percentage=0.03)
-            print("Data IoT simulasi berhasil dibuat.")
-        else:
-            print("Data IoT simulasi sudah ada.")
-    except ImportError:
-        print("Error: Tidak dapat mengimpor generate_iot_data. Pastikan file ada di backend/data.")
-    except Exception as e:
-        print(f"Error saat membuat data IoT lokal: {e}")
-
-    # Pastikan model dilatih ulang dengan parameter baru jika belum ada
-    if not detector.load_model():
-        print("Model tidak dimuat, melatih model awal...")
-        try:
-            initial_df_local = pd.read_csv(os.path.join(DATA_DIR, "iot_data.csv"))
-            detector.train_model(initial_df_local)
-            print("Model awal berhasil dilatih untuk pengembangan lokal.")
-        except Exception as e:
-            print(f"Gagal melatih model awal untuk pengembangan lokal: {e}")
-
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
