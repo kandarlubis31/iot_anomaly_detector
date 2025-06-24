@@ -11,7 +11,7 @@ import AnomalyDetail from "./AnomalyDetail";
 
 Chart.Chart.register(...Chart.registerables);
 
-const API_BASE_URL = "http://localhost:5000"; 
+const API_BASE_URL = "https://iotanomalydetector-production.up.railway.app";
 const MESSAGE_TIMEOUT = 5000;
 const ANOMALY_DISPLAY_LIMIT = 50;
 const HISTOGRAM_BINS = 30;
