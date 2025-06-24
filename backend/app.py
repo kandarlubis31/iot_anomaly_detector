@@ -61,7 +61,7 @@ def prepare_chart_data(df, max_points=2000):
 def upload_csv():
     try:
         if 'csv_file' not in request.files:
-            return jsonify({'error': 'File tidak ter-upload'}), 400
+            return jsonify({'error': 'File tidak ter-upload', 'success': False}), 400
         file = request.files['csv_file']
         
         contamination = request.form.get('contamination', 0.04, type=float)
@@ -69,20 +69,17 @@ def upload_csv():
         df = pd.read_csv(file, sep=r'[;,]', engine='python', on_bad_lines='skip')
         logger.info(f"File CSV berhasil dibaca. Kolom: {df.columns.tolist()}")
 
-        # ================================================================= #
-        # === VALIDASI INFORMATIF BARU ==================================== #
         if find_column_by_keyword(df, 'time') is None:
-            return jsonify({'error': "File CSV tidak valid. Kolom 'Time' wajib ada."}), 400
+            return jsonify({'error': "File CSV tidak valid. Kolom 'Time' wajib ada.", 'success': False}), 400
 
         found_metrics = [col for col in df.columns if col in KNOWN_METRIC_HEADERS]
         if not found_metrics:
-            return jsonify({'error': "File CSV tidak valid. Tidak ada kolom metrik yang dikenali (e.g., Temperature, Humidity)."}), 400
-        # ================================================================= #
+            return jsonify({'error': "File CSV tidak valid. Tidak ada kolom metrik yang dikenali (e.g., Temperature, Humidity).", 'success': False}), 400
         
         logger.info(f"Melatih ulang model dengan data baru dan contamination={contamination}...")
         training_success = detector.train_model(df, contamination=contamination)
         if not training_success:
-            return jsonify({'error': 'Gagal melatih model dengan data baru'}), 500
+            return jsonify({'error': 'Gagal melatih model dengan data baru', 'success': False}), 500
         
         logger.info("Memaksa load ulang model dari file untuk memastikan konsistensi...")
         detector.load_model()
@@ -91,7 +88,7 @@ def upload_csv():
         result_df = detector.predict_anomaly(df)
 
         if result_df is None:
-            return jsonify({'error': 'Gagal melakukan prediksi anomali'}), 500
+            return jsonify({'error': 'Gagal melakukan prediksi anomali', 'success': False}), 500
 
         anomaly_col = find_column_by_keyword(result_df, 'is_anomaly')
         num_anomalies = int(result_df[anomaly_col].sum()) if anomaly_col in result_df else 0
@@ -112,7 +109,7 @@ def upload_csv():
 
     except Exception as e:
         logger.error(f"Error di endpoint upload_csv: {e}", exc_info=True)
-        return jsonify({'error': f'Internal Server Error: {str(e)}'}), 500
+        return jsonify({'error': f'Internal Server Error: {str(e)}', 'success': False}), 500
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
