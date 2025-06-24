@@ -13,11 +13,11 @@ import jsPDF from "jspdf";
 Chart.Chart.register(...Chart.registerables);
 
 const REQUIRED_HEADERS = [
-  "timestamps",
-  "temperatures",
-  "power_consumptions",
+  "timestamp",
+  "temperature",
+  "power_consumption",
   "is_anomaly",
-  "anomaly_scores",
+  "anomaly_score",
 ];
 
 const API_BASE_URL =
@@ -69,13 +69,13 @@ function App() {
   const pdfButtonRef = useRef(null);
 
   const filterDataByRange = useCallback((data, range) => {
-    if (!data?.timestamps?.length) {
+    if (!data?.timestamp?.length) {
       return {
-        timestamps: [],
-        temperatures: [],
-        power_consumptions: [],
+        timestamp: [],
+        temperature: [],
+        power_consumption: [],
         is_anomaly: [],
-        anomaly_scores: [],
+        anomaly_score: [],
       };
     }
 
@@ -87,14 +87,14 @@ function App() {
 
     let startIndex = 0;
     if (range === "last100") {
-      startIndex = Math.max(0, data.timestamps.length - 100);
+      startIndex = Math.max(0, data.timestamp.length - 100);
     } else if (range === "last50") {
-      startIndex = Math.max(0, data.timestamps.length - 50);
+      startIndex = Math.max(0, data.timestamp.length - 50);
     } else if (range === "last1000") {
-      startIndex = Math.max(0, data.timestamps.length - 1000);
+      startIndex = Math.max(0, data.timestamp.length - 1000);
     }
 
-    for (let i = startIndex; i < data.timestamps.length; i++) {
+    for (let i = startIndex; i < data.timestamp.length; i++) {
       const rawIsAnomalyValue = data.is_anomaly[i];
       const isAnomaly =
         rawIsAnomalyValue === true ||
@@ -102,9 +102,9 @@ function App() {
         String(rawIsAnomalyValue).toLowerCase() === "true" ||
         String(rawIsAnomalyValue) === "1";
 
-      const temp = parseFloat(data.temperatures[i]);
-      const power = parseFloat(data.power_consumptions[i]);
-      const score = parseFloat(data.anomaly_scores[i]);
+      const temp = parseFloat(data.temperature[i]);
+      const power = parseFloat(data.power_consumption[i]);
+      const score = parseFloat(data.anomaly_score[i]);
 
       if (isNaN(temp) || isNaN(power) || isNaN(score)) {
         continue;
@@ -112,7 +112,7 @@ function App() {
 
       if (range === "anomalies" && !isAnomaly) continue;
 
-      filteredTimestamps.push(data.timestamps[i]);
+      filteredTimestamps.push(data.timestamp[i]);
       filteredTemperatures.push(temp);
       filteredPowerConsumptions.push(power);
       filteredIsAnomaly.push(isAnomaly);
@@ -120,11 +120,11 @@ function App() {
     }
 
     return {
-      timestamps: filteredTimestamps,
-      temperatures: filteredTemperatures,
-      power_consumptions: filteredPowerConsumptions,
+      timestamp: filteredTimestamps,
+      temperature: filteredTemperatures,
+      power_consumption: filteredPowerConsumptions,
       is_anomaly: filteredIsAnomaly,
-      anomaly_scores: filteredAnomalyScores,
+      anomaly_score: filteredAnomalyScores,
     };
   }, []);
 
@@ -206,7 +206,7 @@ function App() {
         destroyChart(mainChartRef);
         return;
       }
-      if (!data?.timestamps?.length) {
+      if (!data?.timestamp?.length) {
         destroyChart(mainChartRef);
         return;
       }
@@ -215,7 +215,7 @@ function App() {
 
       const ctx = canvas.getContext("2d");
       let datasets = [];
-      const timestampsParsed = data.timestamps.map((ts) => new Date(ts));
+      const timestampsParsed = data.timestamp.map((ts) => new Date(ts));
 
       const normalPoints = [];
       const anomalyPoints = [];
@@ -223,9 +223,9 @@ function App() {
       timestampsParsed.forEach((timestamp, index) => {
         const point = {
           x: index,
-          y: data.temperatures[index],
-          y2: data.power_consumptions[index],
-          score: data.anomaly_scores[index],
+          y: data.temperature[index],
+          y2: data.power_consumption[index],
+          score: data.anomaly_score[index],
         };
 
         if (data.is_anomaly[index]) {
@@ -350,7 +350,7 @@ function App() {
         );
       }
 
-      if (datasets.length === 0 && data.timestamps.length > 0) {
+      if (datasets.length === 0 && data.timestamp.length > 0) {
         datasets.push({
           label: "Tidak Ada Data untuk Tampilan Ini",
           data: [{ x: 0, y: 0 }],
@@ -365,7 +365,7 @@ function App() {
       canvas.chart = new Chart.Chart(ctx, {
         type: "line",
         data: {
-          labels: data.timestamps.map((ts) =>
+          labels: data.timestamp.map((ts) =>
             new Date(ts).toLocaleString()
           ),
           datasets,
@@ -395,8 +395,8 @@ function App() {
               callbacks: {
                 title: (context) => {
                   const index = context[0].parsed.x;
-                  return data.timestamps[index]
-                    ? new Date(data.timestamps[index]).toLocaleString()
+                  return data.timestamp[index]
+                    ? new Date(data.timestamp[index]).toLocaleString()
                     : "";
                 },
                 label: (context) => {
@@ -433,8 +433,8 @@ function App() {
               ticks: {
                 color: getCssVariable("--text-muted"),
                 callback: function (value, _index, _ticks) {
-                  if (data.timestamps && data.timestamps[value]) {
-                    return new Date(data.timestamps[value]).toLocaleTimeString();
+                  if (data.timestamp && data.timestamp[value]) {
+                    return new Date(data.timestamp[value]).toLocaleTimeString();
                   }
                   return value;
                 },
@@ -480,7 +480,7 @@ function App() {
   const createDistributionChart = useCallback(
     (data) => {
       const canvas = distributionChartRef.current;
-      if (!canvas || !data?.temperatures?.length) {
+      if (!canvas || !data?.temperature?.length) {
         destroyChart(distributionChartRef);
         return;
       }
@@ -489,8 +489,8 @@ function App() {
 
       const ctx = canvas.getContext("2d");
       const allMeasurements = [
-        ...data.temperatures,
-        ...data.power_consumptions,
+        ...data.temperature,
+        ...data.power_consumption,
       ];
       const bins = createHistogram(allMeasurements, HISTOGRAM_BINS);
 
@@ -555,7 +555,7 @@ function App() {
   const createScoreChart = useCallback(
     (data) => {
       const canvas = scoreChartRef.current;
-      if (!canvas || !data?.anomaly_scores?.length) {
+      if (!canvas || !data?.anomaly_score?.length) {
         destroyChart(scoreChartRef);
         return;
       }
@@ -563,7 +563,7 @@ function App() {
       destroyChart(scoreChartRef);
 
       const ctx = canvas.getContext("2d");
-      const anomalyScoresOnly = data.anomaly_scores.filter(
+      const anomalyScoresOnly = data.anomaly_score.filter(
         (_, i) => data.is_anomaly[i]
       );
       const scoreBins = createHistogram(anomalyScoresOnly, SCORE_BINS);
@@ -633,7 +633,7 @@ function App() {
 
       container.innerHTML = "";
 
-      if (!data?.timestamps?.length) {
+      if (!data?.timestamp?.length) {
         container.innerHTML = `<p style='color: ${getCssVariable(
           "--text-muted"
         )}; text-align: center; padding: 16px;'>🔍 Tidak ada anomali kritis terdeteksi dalam kumpulan data ini.</p>`;
@@ -644,10 +644,10 @@ function App() {
       for (let i = 0; i < data.is_anomaly.length; i++) {
         if (data.is_anomaly[i]) {
           anomalies.push({
-            timestamp: new Date(data.timestamps[i]),
-            temperature: data.temperatures[i],
-            power: data.power_consumptions[i],
-            score: data.anomaly_scores[i],
+            timestamp: new Date(data.timestamp[i]),
+            temperature: data.temperature[i],
+            power: data.power_consumption[i],
+            score: data.anomaly_score[i],
           });
         }
       }
@@ -940,7 +940,7 @@ function App() {
   }, [rawData]);
 
   useEffect(() => {
-    if (processedData?.timestamps?.length) {
+    if (processedData?.timestamp?.length) {
       createMainChart(processedData);
     } else {
       destroyChart(mainChartRef);
@@ -948,7 +948,7 @@ function App() {
   }, [processedData, chartType, createMainChart, destroyChart, currentTheme]);
 
   useEffect(() => {
-    if (processedData?.timestamps?.length) {
+    if (processedData?.timestamp?.length) {
       createDistributionChart(processedData);
       createScoreChart(processedData);
       createAnomalyList(processedData);
@@ -1097,7 +1097,7 @@ function App() {
                 </li>
                 <li>
                   Baris pertama harus berisi header dengan nama kolom berikut
-                  (tidak harus berurutan):
+                  (sesuai persis):
                   <div
                     style={{
                       display: "flex",
@@ -1114,7 +1114,7 @@ function App() {
                         backgroundColor: getCssVariable("--border-default"),
                       }}
                     >
-                      timestamps
+                      timestamp
                     </code>
                     <code
                       style={{
@@ -1123,7 +1123,7 @@ function App() {
                         backgroundColor: getCssVariable("--border-default"),
                       }}
                     >
-                      temperatures
+                      temperature
                     </code>
                     <code
                       style={{
@@ -1132,7 +1132,7 @@ function App() {
                         backgroundColor: getCssVariable("--border-default"),
                       }}
                     >
-                      power_consumptions
+                      power_consumption
                     </code>
                     <code
                       style={{
@@ -1150,7 +1150,7 @@ function App() {
                         backgroundColor: getCssVariable("--border-default"),
                       }}
                     >
-                      anomaly_scores
+                      anomaly_score
                     </code>
                   </div>
                 </li>
