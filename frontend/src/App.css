@@ -1,68 +1,476 @@
-/* === SLIDER KONTAMINASI === */
-.contamination-slider {
-  margin-top: 20px;
-  padding: 15px;
-  background-color: var(--bg-main);
+/* ==========================================================================
+   1. KONFIGURASI & VARIABEL TEMA
+   ========================================================================== */
+
+/* Tema Terang (Default) */
+:root {
+  /* Warna Primer & Aksen */
+  --color-primary: #007aff;
+  --color-primary-dark: #005ecb;
+  --color-primary-light: rgba(0, 122, 255, 0.1);
+
+  --color-secondary: #34c759;
+  --color-danger: #ff3b30;
+  --color-warning: #ff9500;
+  --color-info: #007aff;
+  
+  /* Latar Belakang & Permukaan */
+  --bg-body: #f2f2f7;
+  --bg-container: #ffffff;
+  --bg-sidebar: #f8f8fa;
+  --bg-card: #ffffff;
+  --bg-input: #f2f2f7;
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+
+  /* Teks */
+  --text-main: #1c1c1e;
+  --text-secondary: #636366;
+  --text-muted: #8e8e93;
+  --text-contrast: #ffffff;
+
+  /* Border & Garis */
+  --border-default: #d1d1d6;
+  --border-card: #e5e5ea;
+  --border-focus: var(--color-primary);
+
+  /* Bayangan (Shadows) */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.1);
+
+  /* Transisi */
+  --transition-speed: 0.25s;
+  --transition-cubic: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tema Gelap */
+.dark-theme {
+  /* Warna Primer & Aksen */
+  --color-primary: #0a84ff;
+  --color-primary-dark: #359aff;
+  --color-primary-light: rgba(10, 132, 255, 0.15);
+  
+  --color-secondary: #30d158;
+  --color-danger: #ff453a;
+  --color-warning: #ff9f0a;
+  --color-info: #0a84ff;
+
+  /* Latar Belakang & Permukaan */
+  --bg-body: #000000;
+  --bg-container: #1c1c1e;
+  --bg-sidebar: #121212;
+  --bg-card: #2c2c2e;
+  --bg-input: #3a3a3c;
+  --bg-overlay: rgba(0, 0, 0, 0.75);
+
+  /* Teks */
+  --text-main: #f2f2f7;
+  --text-secondary: #8e8e93;
+  --text-muted: #636366;
+  --text-contrast: #ffffff;
+
+  /* Border & Garis */
+  --border-default: #3a3a3c;
+  --border-card: #444446;
+  --border-focus: var(--color-primary);
+
+  /* Bayangan (Shadows) */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+
+
+/* ==========================================================================
+   2. GLOBAL RESET & TIPOGRAFI
+   ========================================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  transition: background-color var(--transition-speed), color var(--transition-speed);
+}
+
+
+/* ==========================================================================
+   3. STRUKTUR & LAYOUT UTAMA
+   ========================================================================== */
+.app-container {
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+}
+
+.container {
+  width: 100%;
+  max-width: 1600px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 1200px) {
+  .container {
+    grid-template-columns: 2.5fr 1fr;
+  }
+}
+
+.main-content,
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ==========================================================================
+   4. KOMPONEN UI
+   ========================================================================== */
+
+/* 4.1. Card */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: 24px;
+  transition: transform var(--transition-speed) var(--transition-cubic), box-shadow var(--transition-speed) var(--transition-cubic);
+}
+
+.card-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-card);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 4.2. Tombol (Buttons) */
+.btn {
+  font-family: 'Inter', sans-serif;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-speed) var(--transition-cubic);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+.btn:active {
+  transform: translateY(0);
+  filter: brightness(0.9);
+}
+.btn:disabled {
+  background-color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.btn-primary { background-color: var(--color-primary); color: var(--text-contrast); }
+.btn-danger { background-color: var(--color-danger); color: var(--text-contrast); }
+.btn-secondary { background-color: var(--text-secondary); color: var(--text-contrast); }
+.button-group { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+
+/* 4.3. Form & Kontrol Input */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.control-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+.control-group select {
+  padding: 10px;
   border-radius: 8px;
   border: 1px solid var(--border-default);
+  background-color: var(--bg-input);
+  color: var(--text-main);
+  min-width: 200px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+select:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* 4.4. Area Upload File */
+.file-input-wrapper {
+  margin-bottom: 20px;
+}
+.file-input-display {
+  border: 2px dashed var(--border-default);
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition-speed), background-color var(--transition-speed);
+}
+.file-input-display:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+.file-input-display strong { font-size: 1.1rem; }
+.file-input-display span { font-size: 0.9rem; margin-top: 4px; display: block; }
+
+/* 4.5. Slider Sensitivitas */
+.contamination-slider {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-card);
 }
 .contamination-slider label {
-  font-weight: bold;
+  font-weight: 600;
   display: block;
   margin-bottom: 5px;
 }
 .contamination-slider p {
   font-size: 0.85rem;
   color: var(--text-secondary);
-  margin-top: 0;
-  margin-bottom: 15px;
+  margin: 0 0 15px 0;
 }
 .contamination-slider input[type="range"] {
   width: 100%;
   cursor: pointer;
+  accent-color: var(--color-primary);
 }
 
-/* === TAMPILAN HALAMAN DETAIL ANOMALI === */
-.anomaly-detail-view {
-  padding: 20px;
-  max-width: 1200px;
-  margin: auto;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+
+/* ==========================================================================
+   5. MODUL SPESIFIK
+   ========================================================================== */
+
+/* 5.1. Header */
+.header {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 24px;
+  border-bottom: 1px solid var(--border-card);
 }
-.detail-header {
+.header h1 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+.header p {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+/* 5.2. Statistik */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+.stat-card {
+  padding: 20px;
+  text-align: center;
+}
+.stat-card h3 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+.stat-card p {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* 5.3. Daftar Anomali */
+.anomaly-list .card-title {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+#anomaliesContainer {
+  max-height: 800px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+.anomaly-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border-left: 4px solid var(--color-warning);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
+  transition: all var(--transition-speed) var(--transition-cubic);
+  background-color: var(--bg-card);
+  box-shadow: var(--shadow-sm);
 }
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 15px;
-  margin-top: 20px;
+.anomaly-item:hover {
+  transform: translateX(5px);
+  box-shadow: var(--shadow-md);
+  border-left-color: var(--color-danger);
 }
+.anomaly-item strong { font-size: 0.9rem; font-weight: 600; }
+.anomaly-item small { font-size: 0.8rem; color: var(--text-secondary); }
+.anomaly-score { font-weight: 700; font-size: 0.9rem; color: var(--color-danger); }
+
+
+/* 5.4. Halaman Detail Anomali */
+.anomaly-detail-view {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.detail-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 20px; }
 .detail-item {
-  background-color: var(--bg-main);
-  padding: 15px;
-  border-radius: 6px;
-  border-left: 4px solid var(--color-primary);
+  background-color: var(--bg-body);
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 5px solid var(--color-primary);
 }
-.detail-item strong {
-  display: block;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  margin-bottom: 5px;
-}
-.detail-item span {
-  font-size: 1.2rem;
-  font-weight: bold;
-}
-.context-desc {
-  color: var(--text-secondary);
-  font-size: 0.9rem;
+.detail-item strong { display: block; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 5px; font-weight: 600; }
+.detail-item span { font-size: 1.25rem; font-weight: 700; }
+.detail-item span.anomaly-score { color: var(--color-danger); }
+.context-desc { color: var(--text-secondary); font-size: 0.9rem; text-align: center; margin-bottom: 15px; }
+
+
+/* ==========================================================================
+   6. KELAS UTILITAS & STATUS
+   ========================================================================== */
+
+/* 6.1. Pesan Notifikasi */
+.message-box {
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-weight: 500;
+  border: 1px solid transparent;
   text-align: center;
-  margin-bottom: 15px;
 }
+.message-box.info { background-color: var(--color-primary-light); border-color: var(--color-primary); color: var(--color-primary); }
+.message-box.success { background-color: rgba(52, 199, 89, 0.15); border-color: var(--color-secondary); color: var(--color-secondary); }
+.message-box.error { background-color: rgba(255, 59, 48, 0.15); border-color: var(--color-danger); color: var(--color-danger); }
+
+/* 6.2. Loading Spinner */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-default);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* 6.3. Modal Konfirmasi */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-overlay);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-speed), visibility var(--transition-speed);
+}
+.modal-overlay.show { opacity: 1; visibility: visible; }
+.modal-content {
+  background-color: var(--bg-card);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  width: 90%;
+  max-width: 400px;
+  transform: scale(0.95);
+  transition: transform var(--transition-speed) var(--transition-cubic);
+}
+.modal-overlay.show .modal-content { transform: scale(1); }
+.modal-title { font-family: 'Montserrat', sans-serif; font-size: 1.25rem; margin-bottom: 10px; }
+.modal-content p { color: var(--text-secondary); margin-bottom: 20px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+/* 6.4. Floating Action Button (FAB) */
+.fab {
+  position: fixed;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: var(--text-contrast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: all var(--transition-speed) var(--transition-cubic);
+  z-index: 999;
+}
+.fab:hover { transform: scale(1.1) rotate(15deg); }
+.fab.theme-toggle { bottom: 30px; right: 30px; }
+
+
+/* ==========================================================================
+   7. ANIMASI
+   ========================================================================== */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.results-section.show > * {
+  animation: fadeIn 0.5s var(--transition-cubic) both;
+}
+.results-section.show > *:nth-child(1) { animation-delay: 0.1s; }
+.results-section.show > *:nth-child(2) { animation-delay: 0.2s; }
+.results-section.show > *:nth-child(3) { animation-delay: 0.3s; }
+.results-section.show > *:nth-child(4) { animation-delay: 0.4s; }
