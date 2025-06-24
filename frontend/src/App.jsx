@@ -730,10 +730,12 @@ function App() {
           const firstLine = fileContent.split("\n")[0].trim();
           const headersInFile = firstLine.split(",").map((h) => h.trim());
 
-          const hasAllRequiredHeaders = REQUIRED_HEADERS.every(
-            (requiredHeader) => headersInFile.includes(requiredHeader)
-          );
-
+          const hasAllRequiredHeaders =
+            REQUIRED_HEADERS.length === headersInFile.length &&
+            REQUIRED_HEADERS.every((requiredHeader) =>
+              headersInFile.includes(requiredHeader)
+            );
+            
           if (hasAllRequiredHeaders) {
             setFileSelected(file);
             setFileDisplayContent({
