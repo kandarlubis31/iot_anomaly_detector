@@ -13,11 +13,11 @@ import jsPDF from "jspdf";
 Chart.Chart.register(...Chart.registerables);
 
 const REQUIRED_HEADERS = [
-  "timestamps",
-  "temperatures",
-  "power_consumptions",
+  "timestamp",
+  "temperature",
+  "power_consumption",
   "is_anomaly",
-  "anomaly_scores",
+  "anomaly_score",
 ];
 
 const API_BASE_URL =
@@ -735,7 +735,7 @@ function App() {
             REQUIRED_HEADERS.every((requiredHeader) =>
               headersInFile.includes(requiredHeader)
             );
-            
+
           if (hasAllRequiredHeaders) {
             setFileSelected(file);
             setFileDisplayContent({
