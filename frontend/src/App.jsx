@@ -13,11 +13,11 @@ import jsPDF from "jspdf";
 Chart.Chart.register(...Chart.registerables);
 
 const REQUIRED_HEADERS = [
-  "timestamp",
-  "temperature",
-  "power_consumption",
+  "timestamps",
+  "temperatures",
+  "power_consumptions",
   "is_anomaly",
-  "anomaly_score",
+  "anomaly_scores",
 ];
 
 const API_BASE_URL =
@@ -751,7 +751,7 @@ function App() {
               (h) => !headersInFile.includes(h)
             ).join(", ");
             showMessage(
-              `Struktur CSV tidak cocok. Kolom yang hilang: ${missingHeaders}`,
+              `Struktur CSV tidak cocok. Kolom yang hilang atau tidak sesuai: ${missingHeaders}`,
               "error"
             );
             resetInput();
@@ -1061,6 +1061,102 @@ function App() {
                 </span>
               </div>
             </div>
+
+            <div
+              style={{
+                marginTop: "20px",
+                padding: "15px",
+                borderRadius: "8px",
+                backgroundColor: getCssVariable("--bg-container"),
+                border: `1px dashed ${getCssVariable("--border-default")}`,
+                fontSize: "0.9rem",
+              }}
+            >
+              <p
+                style={{
+                  fontWeight: "bold",
+                  marginBottom: "10px",
+                  color: getCssVariable("--text-main"),
+                }}
+              >
+                📋 Syarat File CSV yang Valid:
+              </p>
+              <ul
+                style={{
+                  margin: 0,
+                  paddingLeft: "20px",
+                  color: getCssVariable("--text-secondary"),
+                  lineHeight: "1.6",
+                }}
+              >
+                <li>
+                  Ekstensi file harus <strong>.csv</strong>.
+                </li>
+                <li>
+                  Pemisah kolom wajib menggunakan koma (<strong>,</strong>).
+                </li>
+                <li>
+                  Baris pertama harus berisi header dengan nama kolom berikut
+                  (tidak harus berurutan):
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "5px 10px",
+                      marginTop: "8px",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    <code
+                      style={{
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        backgroundColor: getCssVariable("--border-default"),
+                      }}
+                    >
+                      timestamps
+                    </code>
+                    <code
+                      style={{
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        backgroundColor: getCssVariable("--border-default"),
+                      }}
+                    >
+                      temperatures
+                    </code>
+                    <code
+                      style={{
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        backgroundColor: getCssVariable("--border-default"),
+                      }}
+                    >
+                      power_consumptions
+                    </code>
+                    <code
+                      style={{
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        backgroundColor: getCssVariable("--border-default"),
+                      }}
+                    >
+                      is_anomaly
+                    </code>
+                    <code
+                      style={{
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        backgroundColor: getCssVariable("--border-default"),
+                      }}
+                    >
+                      anomaly_scores
+                    </code>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
             <div className="button-group">
               <button
                 className="btn btn-primary"
