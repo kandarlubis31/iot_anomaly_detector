@@ -7,10 +7,11 @@ import React, {
 } from "react";
 import * as Chart from "chart.js";
 import './App.css'; 
+import AnomalyDetail from "./AnomalyDetail";
 
 Chart.Chart.register(...Chart.registerables);
 
-const API_BASE_URL = "https://iotanomalydetector-production.up.railway.app";
+const API_BASE_URL = "http://localhost:5000"; 
 const MESSAGE_TIMEOUT = 5000;
 const ANOMALY_DISPLAY_LIMIT = 50;
 const HISTOGRAM_BINS = 30;
@@ -55,11 +56,20 @@ function App() {
   const [primaryMetric, setPrimaryMetric] = useState(null);
   const [secondaryMetric, setSecondaryMetric] = useState(null);
 
+  const [contamination, setContamination] = useState(0.04);
+  const [view, setView] = useState('dashboard');
+  const [selectedAnomaly, setSelectedAnomaly] = useState(null);
+
   const mainChartRef = useRef(null);
   const distributionChartRef = useRef(null);
   const scoreChartRef = useRef(null);
   const csvFileInputRef = useRef(null);
   const messageTimeoutRef = useRef(null);
+
+  const handleAnomalyClick = (anomaly) => {
+    setSelectedAnomaly(anomaly);
+    setView('detail');
+  };
 
   const formatHeaderToUnit = (header) => {
     if (!header) return "";
@@ -75,10 +85,8 @@ function App() {
 
   const filterDataByRange = useCallback((data, range) => {
     if (!data || !data.timestamp || data.timestamp.length === 0) return null;
-
     const totalLength = data.timestamp.length;
     let indicesToKeep;
-
     if (range === 'anomalies') {
         indicesToKeep = data.is_anomaly.map((isA, i) => isA ? i : -1).filter(i => i !== -1);
     } else {
@@ -88,7 +96,6 @@ function App() {
         else if (range === "last1000") startIndex = Math.max(0, totalLength - 1000);
         indicesToKeep = Array.from({ length: totalLength - startIndex }, (_, i) => i + startIndex);
     }
-
     const filteredData = { metrics: {} };
     for (const key in data) {
       if (key === 'metrics') {
@@ -107,17 +114,13 @@ function App() {
       return filterDataByRange(rawData, dataRange);
   }, [rawData, dataRange, filterDataByRange]);
 
-  const getCssVariable = useCallback((variable) => {
-    return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
-  }, []);
-
+  const getCssVariable = useCallback((variable) => getComputedStyle(document.documentElement).getPropertyValue(variable).trim(), []);
   const showMessage = useCallback((msg, type = "info") => {
     setMessage(msg);
     setMessageType(type);
     if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
     messageTimeoutRef.current = setTimeout(() => setMessage(""), MESSAGE_TIMEOUT);
   }, []);
-
   const updateSummaryStats = useCallback((result) => {
     const total = result.total_points || 0;
     setSummaryStats({
@@ -127,7 +130,6 @@ function App() {
       anomaly_percentage: result.anomaly_percentage || 0,
     });
   }, []);
-
   const destroyChart = useCallback((chartRef) => {
     if (chartRef.current?.chart) {
       chartRef.current.chart.destroy();
@@ -142,11 +144,8 @@ function App() {
       return;
     }
     destroyChart(mainChartRef);
-    
     const ctx = canvas.getContext("2d");
-    const normalPoints = [];
-    const anomalyPoints = [];
-    
+    const normalPoints = [], anomalyPoints = [];
     data.timestamp.forEach((_, index) => {
       const point = {
         x: index,
@@ -157,7 +156,6 @@ function App() {
       if (point.y === undefined || point.y2 === undefined) return;
       data.is_anomaly[index] === 1 ? anomalyPoints.push(point) : normalPoints.push(point);
     });
-
     const datasets = [];
     if (normalPoints.length > 0 && (chartType === "line" || chartType === "both")) {
       datasets.push(
@@ -171,10 +169,8 @@ function App() {
         { label: `${formatHeaderToUnit(secondaryMetric)} (Anomali)`, data: anomalyPoints.map(d => ({ x: d.x, y: d.y2, score: d.score })), backgroundColor: getCssVariable("--color-warning"), yAxisID: "y1", type: "scatter", pointRadius: 8, pointStyle: 'star' }
       );
     }
-    
     canvas.chart = new Chart.Chart(ctx, {
-      type: 'line',
-      data: { labels: data.timestamp, datasets },
+      type: 'line', data: { labels: data.timestamp, datasets },
       options: {
         responsive: true, maintainAspectRatio: false, animation: { duration: 300 }, parsing: false, normalized: true,
         plugins: { legend: { position: "top", labels: { color: getCssVariable("--text-main") } } },
@@ -191,19 +187,13 @@ function App() {
     if (!data?.length) return { labels: [], counts: [] };
     const values = data.filter(v => isFinite(v));
     if (!values.length) return { labels: [], counts: [] };
-    const min = Math.min(...values);
-    const max = Math.max(...values);
+    const min = Math.min(...values), max = Math.max(...values);
     const binSize = max === min ? 1 : (max - min) / bins;
     const counts = new Array(bins).fill(0);
-    const labels = Array.from({ length: bins }, (_, i) => {
-        const lowerBound = min + i * binSize;
-        return `${lowerBound.toFixed(1)}-${(lowerBound + binSize).toFixed(1)}`;
-    });
+    const labels = Array.from({ length: bins }, (_, i) => `${(min + i * binSize).toFixed(1)}-${(min + (i + 1) * binSize).toFixed(1)}`);
     values.forEach(v => {
       let binIndex = Math.floor((v - min) / binSize);
-      if (binIndex >= bins) binIndex = bins - 1;
-      if (binIndex < 0) binIndex = 0;
-      counts[binIndex]++;
+      counts[Math.max(0, Math.min(bins - 1, binIndex))]++;
     });
     return { labels, counts };
   }, []);
@@ -211,42 +201,28 @@ function App() {
   const createDistributionChart = useCallback((data) => {
     const canvas = distributionChartRef.current;
     if (!canvas || !data?.metrics?.[primaryMetric] || !data?.metrics?.[secondaryMetric]) {
-      destroyChart(distributionChartRef);
-      return;
+      destroyChart(distributionChartRef); return;
     }
     destroyChart(distributionChartRef);
-    const ctx = canvas.getContext("2d");
     const allMeasurements = [...data.metrics[primaryMetric], ...data.metrics[secondaryMetric]];
     const bins = createHistogram(allMeasurements, HISTOGRAM_BINS);
-    canvas.chart = new Chart.Chart(ctx, {
-      type: "bar",
-      data: { labels: bins.labels, datasets: [{ label: "Distribusi Nilai Sensor Gabungan", data: bins.counts, backgroundColor: getCssVariable("--color-primary") }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { x: { ticks: { color: getCssVariable("--text-muted") } }, y: { beginAtZero: true, ticks: { color: getCssVariable("--text-muted") } } },
-      },
+    canvas.chart = new Chart.Chart(canvas.getContext("2d"), {
+      type: "bar", data: { labels: bins.labels, datasets: [{ data: bins.counts, backgroundColor: getCssVariable("--color-primary") }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
   }, [createHistogram, getCssVariable, primaryMetric, secondaryMetric]);
 
   const createScoreChart = useCallback((data) => {
     const canvas = scoreChartRef.current;
     if (!canvas || !data?.anomaly_score?.length) {
-      destroyChart(scoreChartRef);
-      return;
+      destroyChart(scoreChartRef); return;
     }
     destroyChart(scoreChartRef);
-    const ctx = canvas.getContext("2d");
     const anomalyScoresOnly = data.anomaly_score.filter((_, i) => data.is_anomaly[i] === 1);
     const scoreBins = createHistogram(anomalyScoresOnly, SCORE_BINS);
-    canvas.chart = new Chart.Chart(ctx, {
-      type: "bar",
-      data: { labels: scoreBins.labels, datasets: [{ label: "Distribusi Skor Anomali", data: scoreBins.counts, backgroundColor: getCssVariable("--color-danger") }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { x: { ticks: { color: getCssVariable("--text-muted") } }, y: { beginAtZero: true, ticks: { color: getCssVariable("--text-muted") } } },
-      },
+    canvas.chart = new Chart.Chart(canvas.getContext("2d"), {
+      type: "bar", data: { labels: scoreBins.labels, datasets: [{ data: scoreBins.counts, backgroundColor: getCssVariable("--color-danger") }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
   }, [createHistogram, getCssVariable]);
 
@@ -254,31 +230,28 @@ function App() {
     const container = document.getElementById("anomaliesContainer");
     if (!container || !data?.timestamp?.length || !primaryMetric || !secondaryMetric) return;
     
-    const anomalies = data.timestamp
-      .map((ts, i) => data.is_anomaly[i] === 1 ? {
-          time: new Date(ts),
-          primary: data.metrics[primaryMetric]?.[i],
-          secondary: data.metrics[secondaryMetric]?.[i],
-          score: data.anomaly_score?.[i],
+    const anomalies = data.timestamp.map((ts, i) => data.is_anomaly[i] === 1 ? {
+          time: new Date(ts), primary: data.metrics[primaryMetric]?.[i],
+          secondary: data.metrics[secondaryMetric]?.[i], score: data.anomaly_score?.[i],
         } : null
-      )
-      .filter(item => item && item.primary !== undefined && item.secondary !== undefined)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, ANOMALY_DISPLAY_LIMIT);
+      ).filter(item => item && item.primary !== undefined && item.secondary !== undefined)
+       .sort((a, b) => b.score - a.score).slice(0, ANOMALY_DISPLAY_LIMIT);
 
     if (anomalies.length === 0) {
       container.innerHTML = `<p style='color: var(--text-muted); text-align: center;'>✅ Tidak ada anomali terdeteksi.</p>`;
       return;
     }
     
-    container.innerHTML = anomalies.map(anomaly => `
-      <div class="anomaly-item">
-        <div>
-          <strong>⏰ ${anomaly.time.toLocaleString()}</strong><br>
-          <small>${formatHeaderToUnit(primaryMetric)}: ${anomaly.primary.toFixed(2)}, ${formatHeaderToUnit(secondaryMetric)}: ${anomaly.secondary.toFixed(2)}</small>
-        </div>
-        <span class="anomaly-score" style="color: var(--color-danger);">🎯 Skor: ${anomaly.score.toFixed(3)}</span>
-      </div>`).join('');
+    const fragment = document.createDocumentFragment();
+    anomalies.forEach(anomaly => {
+      const item = document.createElement("div");
+      item.className = "anomaly-item";
+      item.onclick = () => handleAnomalyClick(anomaly);
+      item.innerHTML = `<div><strong>⏰ ${anomaly.time.toLocaleString()}</strong><br><small>${formatHeaderToUnit(primaryMetric)}: ${anomaly.primary.toFixed(2)}</small></div><span class="anomaly-score">🎯 ${anomaly.score.toFixed(3)}</span>`;
+      fragment.appendChild(item);
+    });
+    container.innerHTML = '';
+    container.appendChild(fragment);
   }, [primaryMetric, secondaryMetric]);
 
   const handleFileChange = useCallback((e) => {
@@ -286,85 +259,53 @@ function App() {
       if (!file) return;
       setFileSelected(file);
       setFileDisplayContent({
-        icon: "📈",
-        name: file.name,
-        details: `✅ File siap dianalisis (${(file.size / 1024).toFixed(1)} KB)`,
+        icon: "📈", name: file.name,
+        details: `✅ Siap dianalisis (${(file.size / 1024).toFixed(1)} KB)`,
         color: "var(--color-secondary)",
       });
     }, []);
-
   const handleFileDisplayClick = useCallback(() => csvFileInputRef.current?.click(), []);
-
   const uploadCsv = useCallback(async () => {
-    if (!fileSelected) {
-      showMessage("Pilih file CSV terlebih dahulu.", "error");
-      return;
-    }
-    setLoading(true);
-    setResultsVisible(false);
+    if (!fileSelected) { showMessage("Pilih file CSV terlebih dahulu.", "error"); return; }
+    setLoading(true); setResultsVisible(false);
     const formData = new FormData();
     formData.append("csv_file", fileSelected);
+    formData.append("contamination", contamination);
     
     try {
       const response = await fetch(`${API_BASE_URL}/api/upload_csv`, { method: "POST", body: formData });
       const result = await response.json();
-      
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Terjadi kesalahan di server.");
-      }
+      if (!response.ok || !result.success) throw new Error(result.error || "Error server.");
 
-      showMessage(result.message, "success");
-      setRawData(result.chart_data);
+      showMessage(result.message, "success"); setRawData(result.chart_data);
       updateSummaryStats(result);
 
       const metricKeys = Object.keys(result.chart_data.metrics || {});
       setDetectedMetrics(metricKeys);
       setPrimaryMetric(metricKeys.find(k => k.toLowerCase().includes('temperature')) || metricKeys[0] || null);
       setSecondaryMetric(metricKeys.find(k => k !== (metricKeys.find(k => k.toLowerCase().includes('temperature')) || metricKeys[0])) || metricKeys[1] || null);
-
       setResultsVisible(true);
-
     } catch (error) {
       showMessage(`Error: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
-  }, [fileSelected, showMessage, updateSummaryStats]);
+  }, [fileSelected, showMessage, updateSummaryStats, contamination]);
 
   const clearDataAndReload = useCallback(() => setShowConfirmModal(true), []);
-
   const executeReset = useCallback(() => {
     setShowConfirmModal(false);
-    destroyChart(mainChartRef);
-    destroyChart(distributionChartRef);
-    destroyChart(scoreChartRef);
-    setFileSelected(null);
-    setRawData(null);
-    setResultsVisible(false);
-    setSummaryStats(DEFAULT_SUMMARY_STATS);
-    setFileDisplayContent(DEFAULT_FILE_DISPLAY);
-    setMessage("");
-    setChartType("line");
-    setDataRange("all");
-    setDetectedMetrics([]);
-    setPrimaryMetric(null);
-    setSecondaryMetric(null);
+    destroyChart(mainChartRef); destroyChart(distributionChartRef); destroyChart(scoreChartRef);
+    setFileSelected(null); setRawData(null); setResultsVisible(false);
+    setSummaryStats(DEFAULT_SUMMARY_STATS); setFileDisplayContent(DEFAULT_FILE_DISPLAY);
+    setMessage(""); setChartType("line"); setDataRange("all");
+    setDetectedMetrics([]); setPrimaryMetric(null); setSecondaryMetric(null);
     if (csvFileInputRef.current) csvFileInputRef.current.value = "";
     if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
   }, [destroyChart]);
 
-  const toggleTheme = useCallback(() => {
-    setCurrentTheme(prev => {
-      const newTheme = prev === "default" ? "dark-theme" : "default";
-      try { localStorage.setItem("theme", newTheme); } catch (e) {}
-      return newTheme;
-    });
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.className = currentTheme;
-  }, [currentTheme]);
-
+  const toggleTheme = useCallback(() => setCurrentTheme(p => (p === "default" ? "dark-theme" : "default")), []);
+  useEffect(() => { document.documentElement.className = currentTheme; }, [currentTheme]);
   useEffect(() => {
     if (resultsVisible && processedData) {
       createMainChart(processedData);
@@ -374,6 +315,16 @@ function App() {
     }
   }, [resultsVisible, processedData, createMainChart, createDistributionChart, createScoreChart, createAnomalyList]);
   
+  if (view === 'detail') {
+    return <AnomalyDetail 
+              anomaly={selectedAnomaly} 
+              fullRawData={rawData}
+              onBack={() => setView('dashboard')}
+              primaryMetric={primaryMetric}
+              secondaryMetric={secondaryMetric}
+            />;
+  }
+
   return (
     <div className="app-container">
       <div className="container">
@@ -390,8 +341,21 @@ function App() {
                 <span style={{ color: fileDisplayContent.color }}>{fileDisplayContent.details}</span>
               </div>
             </div>
+            <div className="contamination-slider">
+              <label htmlFor="contamination">Sensitivitas Anomali: <strong>{Math.round(contamination * 100)}%</strong></label>
+              <p>Geser ke kanan untuk mendeteksi lebih banyak anomali (lebih sensitif).</p>
+              <input 
+                type="range" 
+                id="contamination" 
+                min="0.01" 
+                max="0.20" 
+                step="0.01"
+                value={contamination} 
+                onChange={(e) => setContamination(parseFloat(e.target.value))}
+              />
+            </div>
             <div className="button-group">
-              <button className="btn btn-primary" onClick={uploadCsv} disabled={loading || !fileSelected}>🚀 Analisis Data</button>
+              <button className="btn btn-primary" onClick={uploadCsv} disabled={loading || !fileSelected}>🚀 Analisis & Latih Ulang</button>
               <button className="btn btn-danger" onClick={clearDataAndReload} disabled={loading}>🔄 Bersihkan & Atur Ulang</button>
             </div>
           </div>

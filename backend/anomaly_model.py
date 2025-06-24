@@ -17,30 +17,34 @@ class AnomalyDetector:
         self.model_path = model_path
         self.model = None
         self.features_used_by_model = []
-        self.isolation_forest = IsolationForest(contamination=0.04, random_state=42, n_estimators=100)
 
-    def train_model(self, df):
+    def train_model(self, df, contamination=0.04):
         try:
             self.features_used_by_model = [
                 col for col in df.columns if col in KNOWN_METRIC_HEADERS
             ]
-            
             if not self.features_used_by_model:
-                raise ValueError("Tidak ditemukan kolom metrik yang valid untuk training di dalam data.")
+                raise ValueError("Tidak ditemukan kolom metrik yang valid untuk training.")
 
-            logger.info(f"Training model menggunakan fitur: {self.features_used_by_model}")
-            X_train = df[self.features_used_by_model].copy()
+            logger.info(f"Training model dengan fitur: {self.features_used_by_model} dan contamination: {contamination}")
             
+            # Buat instance model di sini, bukan di __init__
+            isolation_forest = IsolationForest(
+                contamination=float(contamination), 
+                random_state=42, 
+                n_estimators=100
+            )
+
+            X_train = df[self.features_used_by_model].copy()
             for col in X_train.columns:
                 X_train[col] = pd.to_numeric(X_train[col], errors='coerce')
-            
             X_train.dropna(inplace=True)
-            
+
             if X_train.empty:
                 raise ValueError("Dataframe kosong setelah membersihkan nilai non-numerik.")
                 
-            self.isolation_forest.fit(X_train)
-            self.model = self.isolation_forest
+            isolation_forest.fit(X_train)
+            self.model = isolation_forest
             
             model_artifact = {
                 'model': self.model,
@@ -65,7 +69,6 @@ class AnomalyDetector:
                 return False
                 
             model_artifact = joblib.load(self.model_path)
-            
             if 'model' in model_artifact and 'features' in model_artifact:
                 self.model = model_artifact['model']
                 self.features_used_by_model = model_artifact['features']
@@ -86,15 +89,12 @@ class AnomalyDetector:
             return None
             
         try:
-            missing_cols = [
-                col for col in self.features_used_by_model if col not in df.columns
-            ]
+            missing_cols = [col for col in self.features_used_by_model if col not in df.columns]
             if missing_cols:
-                raise ValueError(f"Kolom untuk prediksi tidak cocok dengan model: {missing_cols} tidak ditemukan.")
+                raise ValueError(f"Kolom untuk prediksi tidak cocok: {missing_cols} tidak ditemukan.")
 
             df_result = df.copy()
             X_predict = df[self.features_used_by_model].copy()
-            
             for col in X_predict.columns:
                 X_predict[col] = pd.to_numeric(X_predict[col], errors='coerce')
                 
@@ -115,8 +115,7 @@ class AnomalyDetector:
             
             df_result.loc[valid_indices, 'is_anomaly'] = (predictions == -1).astype(int)
             
-            # Normalisasi skor agar lebih intuitif (mendekati 1 = anomali)
-            score_normalized = 1 - (anomaly_scores - anomaly_scores.min()) / (anomaly_scores.max() - anomaly_scores.min())
+            score_normalized = 1 - (anomaly_scores - anomaly_scores.min()) / (anomaly_scores.max() - anomaly_scores.min() + 1e-9)
             df_result.loc[valid_indices, 'anomaly_score'] = score_normalized
             
             return df_result
