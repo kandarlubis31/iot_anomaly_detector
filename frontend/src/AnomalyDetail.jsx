@@ -38,9 +38,9 @@ function AnomalyDetail({ anomaly, fullRawData, onBack, primaryMetric, secondaryM
     const datasets = [{
       label: formatHeaderToUnit(primaryMetric),
       data: primaryData,
-      borderColor: '#007bff',
+      borderColor: 'var(--color-primary)',
       fill: false,
-      pointBackgroundColor: labels.map(l => new Date(l).getTime() === anomaly.time.getTime() ? '#dc3545' : '#007bff'),
+      pointBackgroundColor: labels.map(l => new Date(l).getTime() === anomaly.time.getTime() ? 'var(--color-danger)' : 'var(--color-primary)'),
       pointRadius: labels.map(l => new Date(l).getTime() === anomaly.time.getTime() ? 8 : 4),
       pointHoverRadius: 10,
     }];
@@ -63,24 +63,26 @@ function AnomalyDetail({ anomaly, fullRawData, onBack, primaryMetric, secondaryM
   if (!anomaly) return null;
 
   return (
-    <div className="anomaly-detail-view">
-      <div className="card">
-        <div className="detail-header">
-          <h2 className="card-title">🚨 Detail Anomali</h2>
-          <button className="btn btn-secondary" onClick={onBack}>Kembali</button>
+    <div className="app-container">
+      <div className="anomaly-detail-view">
+        <div className="card">
+          <div className="detail-header">
+            <h2 className="card-title">🚨 Detail Anomali</h2>
+            <button className="btn btn-secondary" onClick={onBack}>Kembali</button>
+          </div>
+          <div className="detail-grid">
+            <div className="detail-item"><strong>Waktu Kejadian</strong><span>{anomaly.time.toLocaleString()}</span></div>
+            <div className="detail-item"><strong>Skor Anomali</strong><span className="anomaly-score">{anomaly.score.toFixed(4)}</span></div>
+            <div className="detail-item"><strong>{formatHeaderToUnit(primaryMetric)}</strong><span>{anomaly.primary.toFixed(2)}</span></div>
+            <div className="detail-item"><strong>{formatHeaderToUnit(secondaryMetric)}</strong><span>{anomaly.secondary.toFixed(2)}</span></div>
+          </div>
         </div>
-        <div className="detail-grid">
-          <div className="detail-item"><strong>Waktu Kejadian</strong><span>{anomaly.time.toLocaleString()}</span></div>
-          <div className="detail-item"><strong>Skor Anomali</strong><span className="anomaly-score">{anomaly.score.toFixed(4)}</span></div>
-          <div className="detail-item"><strong>{formatHeaderToUnit(primaryMetric)}</strong><span>{anomaly.primary.toFixed(2)}</span></div>
-          <div className="detail-item"><strong>{formatHeaderToUnit(secondaryMetric)}</strong><span>{anomaly.secondary.toFixed(2)}</span></div>
-        </div>
-      </div>
-      <div className="card">
-        <h3 className="card-title">📊 Konteks Kejadian</h3>
-        <p className="context-desc">Grafik ini menunjukkan {formatHeaderToUnit(primaryMetric)} 10 data point sebelum dan sesudah anomali (titik merah) terjadi.</p>
-        <div className="chart-container" style={{height: '350px'}}>
-          <canvas ref={contextChartRef}></canvas>
+        <div className="card">
+          <h3 className="card-title">📊 Konteks Kejadian</h3>
+          <p className="context-desc">Grafik ini menunjukkan {formatHeaderToUnit(primaryMetric)} 10 data point sebelum dan sesudah anomali (titik merah) terjadi.</p>
+          <div className="chart-container" style={{height: '350px'}}>
+            <canvas ref={contextChartRef}></canvas>
+          </div>
         </div>
       </div>
     </div>

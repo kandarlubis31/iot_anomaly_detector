@@ -31,7 +31,8 @@ def prepare_chart_data(df, max_points=2000):
     if not time_col:
         raise ValueError("Kolom 'Time' tidak ditemukan di DataFrame hasil.")
     
-    df[time_col] = pd.to_datetime(df[time_col])
+    # PERBAIKAN: Tambahkan unit='s' untuk membaca Unix timestamp dalam detik
+    df[time_col] = pd.to_datetime(df[time_col], unit='s')
     df = df.sort_values(by=time_col)
 
     if len(df) > max_points:
