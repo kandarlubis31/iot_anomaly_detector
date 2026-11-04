@@ -34,3 +34,15 @@ backend/data/*.csv
 
 # Log files
 *.log
+
+# --- Dokumen internal agent: JANGAN di-commit ke repo publik ---
+# CONTEXT.md, AGENTS.md, PRD, dan ADR memuat rencana serta keputusan internal.
+CONTEXT.md
+AGENTS.md
+AGENT.md
+CLAUDE.md
+GEMINI.md
+PRD.md
+prd.md
+docs/adr/
+.cursorrules
