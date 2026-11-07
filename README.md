@@ -1,29 +1,29 @@
-# 🔍 Deteksi Anomali Data dan Perilaku IoT
+# Deteksi Anomali Data dan Perilaku IoT
 
 Aplikasi web untuk mendeteksi anomali pada data sensor dan perilaku perangkat IoT. Aplikasi ini menampilkan hasil analisis secara interaktif dengan grafik yang mudah dipahami.
 
 ---
 
-## 📄 Pendahuluan
+## Pendahuluan
 
-Proyek ini menawarkan solusi web untuk menganalisis data time series dari perangkat IoT, lalu mengidentifikasi pola atau perilaku yang menyimpang (anomali).  
+Proyek ini menawarkan solusi web untuk menganalisis data time series dari perangkat IoT, lalu mengidentifikasi pola atau perilaku yang menyimpang (anomali).
 Cukup unggah file CSV, dan aplikasi akan memberikan laporan visual tentang kondisi perangkatmu.
 
 ---
 
-## ✨ Fitur Unggulan
+## Fitur Unggulan
 
-- **📂 Unggah File CSV:** Mudah mengunggah data IoT dalam format CSV.  
-- **🧠 Deteksi Anomali Cerdas:** Menggunakan model *Isolation Forest* untuk menemukan anomali.  
-- **📊 Ringkasan Statistik Instan:** Gambaran cepat total data, jumlah anomali, dan persentasenya.  
-- **📈 Visualisasi Interaktif:** Grafik time series jelas dengan anomali ditandai khusus.  
-- **📌 Analisis Distribusi Data:** Grafik distribusi pengukuran dan skor anomali.  
-- **🔥 Daftar Anomali Teratas:** Tampilkan 10 anomali paling signifikan dengan detail lengkap.  
-- **👤 Antarmuka Ramah Pengguna:** Desain intuitif dan mudah digunakan.
+- **Unggah File CSV:** Mudah mengunggah data IoT dalam format CSV.
+- **Deteksi Anomali Cerdas:** Menggunakan model *Isolation Forest* untuk menemukan anomali.
+- **Ringkasan Statistik Instan:** Gambaran cepat total data, jumlah anomali, dan persentasenya.
+- **Visualisasi Interaktif:** Grafik time series jelas dengan anomali ditandai khusus.
+- **Analisis Distribusi Data:** Grafik distribusi pengukuran dan skor anomali.
+- **Daftar Anomali Teratas:** Tampilkan 10 anomali paling signifikan dengan detail lengkap.
+- **Antarmuka Ramah Pengguna:** Desain intuitif dan mudah digunakan.
 
 ---
 
-## 🛠️ Teknologi yang Digunakan
+## Teknologi yang Digunakan
 
 **Backend:**
 - Python 3.10
@@ -42,7 +42,7 @@ Cukup unggah file CSV, dan aplikasi akan memberikan laporan visual tentang kondi
 
 ---
 
-## 🚀 Persyaratan Sistem
+## Persyaratan Sistem
 
 - Python 3.10
 - `pip` (Python package manager)
@@ -52,7 +52,7 @@ Cukup unggah file CSV, dan aplikasi akan memberikan laporan visual tentang kondi
 
 ---
 
-## 📦 Instalasi dan Menjalankan Aplikasi
+## Instalasi dan Menjalankan Aplikasi
 
 ### 1. Persiapan Awal
 
@@ -61,3 +61,11 @@ mkdir C:\IoTApp
 cd C:\IoTApp
 mkdir iot_anomaly_detector
 cd iot_anomaly_detector
+
+---
+
+## English
+
+**IoT Anomaly Detector** is a web app that analyses time-series data from IoT devices and flags behaviour that deviates from the normal pattern.
+
+You upload a CSV file and get an Isolation Forest analysis, a statistical summary (total rows, anomaly count, percentage), and interactive charts that mark every anomalous point.
